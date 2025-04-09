@@ -9,40 +9,112 @@ class FilterMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bidsData = Provider.of<BidsProvider>(context);
+    final theme = Theme.of(context);
 
-    final TextStyle tabStyle = GoogleFonts.bebasNeue(
-      fontSize: 18.0,
+    final TextStyle activeTabStyle = GoogleFonts.poppins(
+      fontSize: 14.0,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.2,
+    );
+
+    final TextStyle inactiveTabStyle = GoogleFonts.poppins(
+      fontSize: 14.0,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.2,
     );
 
     return PreferredSize(
       preferredSize: Size.fromHeight(AppBar().preferredSize.height),
       child: Container(
-        height: 50,
+        height: 56, // Increased for better tap targets
         padding: const EdgeInsets.symmetric(
-          horizontal: 5,
-          vertical: 3,
+          horizontal: 8, // Reduced horizontal padding for more space
+          vertical: 5,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              offset: const Offset(0, 2),
+              blurRadius: 6,
+              spreadRadius: 0,
+            ),
+          ],
         ),
         child: TabBar(
-          isScrollable: true,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.black,
+          unselectedLabelColor: Colors.black.withOpacity(0.7),
+          labelStyle: activeTabStyle,
+          unselectedLabelStyle: inactiveTabStyle,
+          indicatorWeight: 0, // Remove default indicator
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelPadding: EdgeInsets.zero, // Remove padding between tabs
           indicator: BoxDecoration(
-            borderRadius: BorderRadius.circular(
-              20,
-            ),
-            color: Colors.black,
+            borderRadius: BorderRadius.circular(28),
+            color: theme.primaryColor,
+            boxShadow: [
+              BoxShadow(
+                color: theme.primaryColor.withOpacity(0.4),
+                offset: const Offset(0, 2),
+                blurRadius: 6,
+                spreadRadius: -1,
+              ),
+            ],
           ),
           tabs: [
-            Tab(
-              child: Text("Activities (${bidsData.openBidsCounter.toString()})",
-                  style: tabStyle),
+            _buildTab(
+              title: "Activities",
+              count: bidsData.openBidsCounter,
+              icon: Icons.assignment_outlined,
             ),
-            Tab(
-              child: Text("Archive", style: tabStyle),
+            _buildTab(
+              title: "Archive",
+              icon: Icons.archive_outlined,
             ),
-            Tab(
-              child: Text("Reminders", style: tabStyle),
+            _buildTab(
+              title: "Reminders",
+              icon: Icons.notifications_none_outlined,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTab({
+    required String title,
+    int? count,
+    required IconData icon,
+  }) {
+    return Tab(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: 8, vertical: 8), // Reduced horizontal padding
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16), // Slightly smaller icon
+            const SizedBox(width: 4), // Reduced spacing
+            Text(title),
+            if (count != null) ...[
+              const SizedBox(width: 3), // Reduced spacing
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 5, vertical: 1), // Smaller padding
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  count.toString(),
+                  style: const TextStyle(
+                    fontSize: 11, // Smaller font
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

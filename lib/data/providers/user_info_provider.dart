@@ -1,4 +1,3 @@
-
 import 'package:QuoteApp/data/providers/products_provider.dart';
 import 'package:QuoteApp/data/providers/reminder_provider.dart';
 import 'package:QuoteApp/data/providers/tenant_provider.dart';
@@ -12,12 +11,21 @@ import 'bids_provider.dart';
 
 class UserInfoProvider with ChangeNotifier {
   CustomUser? userData;
+  bool _isLoading = true;
+  bool _hasInitialized = false;
+
+  bool get isLoading => _isLoading;
+  bool get hasInitialized => _hasInitialized;
 
   Future<void> fetchUserData() async {
-    userData ?? await _getUserData();
-  }
+    // Don't fetch if we already have data or are in the process of loading
+    if (userData != null || (_isLoading && _hasInitialized)) {
+      return;
+    }
 
-  Future<void> _getUserData() async {
+    _isLoading = true;
+    notifyListeners();
+
     try {
       final user = await UserDataService().getUserDataFromUserCollection();
 
@@ -25,9 +33,32 @@ class UserInfoProvider with ChangeNotifier {
         print("Problem with user model sync");
       }
       userData = user;
-      notifyListeners();
+      _hasInitialized = true;
     } catch (err) {
       print(err.toString());
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Method to manually refresh data when needed
+  Future<void> refreshUserData() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Use the refreshUserData method that clears cache before fetching
+      final user = await UserDataService().refreshUserData();
+      if (user == null) {
+        print("Problem with user model sync during refresh");
+      }
+      userData = user;
+    } catch (err) {
+      print(err.toString());
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -37,8 +68,11 @@ class UserInfoProvider with ChangeNotifier {
       await auth.signOut();
       notifyListeners();
     }
+
     if (userData != null) {
       userData = null;
+      _hasInitialized = false;
+
       try {
         context.read<ReminderProvider>().removeAllReminders();
         context.read<ProductProvider>().removeAllProducts();

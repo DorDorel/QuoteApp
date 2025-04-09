@@ -1,6 +1,5 @@
 import 'dart:developer';
 
-
 import 'package:QuoteApp/auth/auth_firestore_const.dart';
 import 'package:QuoteApp/auth/auth_repository.dart';
 import 'package:QuoteApp/auth/tenant_repository.dart';
@@ -14,8 +13,12 @@ import 'package:flutter/foundation.dart' show immutable, kDebugMode;
 class UserDataService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   final String tenant = TenantRepositoryImpl.currentTenantId;
-  final uid = FirebaseAuth.instance.currentUser!.uid;
-// Collections reference
+  final String uid = FirebaseAuth.instance.currentUser!.uid;
+
+  // Cache the user data to prevent redundant Firestore queries
+  static CustomUser? _cachedUserData;
+
+  // Collections reference
   final CollectionReference companiesCollection =
       _db.collection(AuthFirestoreConstants.tenantCollectionString);
   final CollectionReference usersCollection =
@@ -32,21 +35,47 @@ class UserDataService {
     if (kDebugMode) {
       log("🐛  *DEBUG LOG* : Database Query - getUserDataFromUserCollection from DatabaseService reading");
     }
-    try {
-      final QuerySnapshot<dynamic> userRef =
-          await usersCollection.snapshots().first;
-      final currentUser = userRef.docs.where(
-          (element) => element[AuthFirestoreConstants.userIdString] == uid);
 
-      return CustomUser.fromMap(currentUser.first.data());
+    // Return cached data if available
+    if (_cachedUserData != null) {
+      if (kDebugMode) {
+        log("🐛  *DEBUG LOG* : Returning cached user data");
+      }
+      return _cachedUserData;
+    }
+
+    try {
+      // More efficient query that directly filters on the server side
+      final QuerySnapshot<Object?> userRef = await usersCollection
+          .where(AuthFirestoreConstants.userIdString, isEqualTo: uid)
+          .limit(1)
+          .get();
+
+      if (userRef.docs.isEmpty) {
+        log("No user document found with uid: $uid");
+        return null;
+      }
+
+      // Cache the data before returning
+      _cachedUserData = CustomUser.fromMap(userRef.docs.first.data() as Map<String, dynamic>);
+      return _cachedUserData;
     } catch (err) {
+      log("Error fetching user data: ${err.toString()}");
       print(err.toString());
     }
     return null;
   }
 
-  //   final y = userRef.docs.where((element) => element['uid'] == uid);
-  // print(y.first['name']);
+  // Force refresh user data from Firestore
+  Future<CustomUser?> refreshUserData() async {
+    _cachedUserData = null;
+    return getUserDataFromUserCollection();
+  }
+
+  // Clear cached user data
+  static void clearCache() {
+    _cachedUserData = null;
+  }
 
   Future<void> addUserToUserCollection({required CustomUser user}) async {
     try {
