@@ -4,13 +4,8 @@ QuoteApp is a Flutter Cross Platform project that allows users to send Quote via
 
 
 ✅✅✅ **Update (25.12.2024):** new UI 🚀🚀🚀
+[![Watch the video](https://img.youtube.com/vi/RJ9SxbftBJM/0.jpg)](https://www.youtube.com/shorts/RJ9SxbftBJM)
 
-<div style="display: flex; flex-wrap: wrap; gap: 10px;">
-    <img src="/demo/a.gif" alt="GIF A" width="200">
-    <img src="/demo/b.gif" alt="GIF B" width="200">
-    <img src="/demo/c.gif" alt="GIF C" width="200">
-    <img src="/demo/d.gif" alt="GIF D" width="200">
-</div>
 # QuoteApp (V2.0.0)
 
 ✅✅✅ **Update (31.12.2023):** Production Ready 🚀🚀🚀
