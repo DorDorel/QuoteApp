@@ -8,6 +8,7 @@ import 'package:QuoteApp/presentation/screens/bids/widgets/product_list.dart';
 import 'package:QuoteApp/presentation/screens/home/main_dashboard.dart';
 import 'package:QuoteApp/presentation/screens/root/root.dart';
 import 'package:QuoteApp/presentation/widgets/const_widgets/background_color.dart';
+import 'package:QuoteApp/logs/console_logger.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -33,6 +34,20 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   bool _isSubmitting = false;
+  final logger = Logger();
+
+  @override
+  void initState() {
+    super.initState();
+    // Log screen view
+    logger.logScreenView("ProductSelectionScreen");
+
+    // Log client data as a business event
+    logger.logBusinessEvent("product_selection_started", {
+      'client_name': widget.name,
+      'client_email': widget.email,
+    });
+  }
 
   @override
   void dispose() {
@@ -245,11 +260,8 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
                   _isSubmitting = true;
                 });
 
-                await _showLoadingDialog();
+                _showLoadingDialog();
                 await _createBid();
-
-                // eraseAllUserBid because we want to re-reading from BidsDb
-                bidsData.eraseAllUserBid();
               }
             : null,
         child: Row(
@@ -302,6 +314,14 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
             ),
             onPressed: () {
               currentBidData.clearAllCurrentBid();
+
+              // Log user action with analytics
+              logger.logUserAction("cart_cleared", {
+                'client_name': widget.name,
+                'product_count_before_clear':
+                    currentBidData.getCurrentBidProduct.length,
+              });
+
               Navigator.of(ctx).pop();
             },
           ),
@@ -377,7 +397,7 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
     );
   }
 
-  Future<void> _showLoadingDialog() async {
+  void _showLoadingDialog() async {
     return showDialog(
       context: context,
       barrierDismissible: false,
@@ -409,39 +429,93 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
   }
 
   Future<void> _createBid() async {
-    final firebaseUser = Provider.of<User?>(context, listen: false);
-    final newBidsData = Provider.of<NewBidsProvider>(context, listen: false);
-    int currentBidNumber = await SharedDb.getCurrentBidId();
+    try {
+      final logger = Logger();
+      logger.info("Creating bid...", tag: "ProductSelection");
+      final firebaseUser = Provider.of<User?>(context, listen: false);
 
-    final Bid bid = Bid(
-      openFlag: true,
-      bidId: currentBidNumber.toString(),
-      createdBy: firebaseUser!.uid.toString(),
-      date: DateTime.now(),
-      clientName: widget.name,
-      clientMail: widget.email,
-      clientPhone: widget.phoneNumber,
-      finalPrice: calculateTotalBidSum(context),
-      selectedProducts: newBidsData.getCurrentBidProduct,
-    );
+      // Check if user is logged in
+      if (firebaseUser == null) {
+        logger.error("Firebase user is null", tag: "ProductSelection");
+        return;
+      }
 
-    final bool bidFlow = await CreateBid(
-      phoneNumber: widget.phoneNumber,
-      currentBid: bid,
-      creator: firebaseUser.uid.toString(),
-    ).startNewBidFlow();
+      final newBidsData = Provider.of<NewBidsProvider>(context, listen: false);
+      final bidsData = Provider.of<BidsProvider>(context, listen: false);
+      int currentBidNumber = await SharedDb.getCurrentBidId();
 
-    // Close loading dialog
-    Navigator.of(context).pop();
+      // Calculate final price directly before creating the bid to ensure accuracy
+      final double totalPrice = calculateTotalBidSum(context);
 
-    // Navigate to root screen
-    Navigator.pushNamed(
-      context,
-      RootScreen.routeName,
-    );
+      final Bid bid = Bid(
+        openFlag: true,
+        bidId: currentBidNumber.toString(),
+        createdBy: firebaseUser.uid.toString(),
+        date: DateTime.now(),
+        clientName: widget.name,
+        clientMail: widget.email,
+        clientPhone: widget.phoneNumber,
+        finalPrice: totalPrice,
+        selectedProducts: newBidsData.getCurrentBidProduct,
+      );
 
-    setState(() {
-      _isSubmitting = false;
-    });
+      logger.info(
+          "Creating bid: ${bid.bidId} for ${bid.clientName} with total price: $totalPrice",
+          tag: "ProductSelection");
+
+      // Log bid creation as a business event
+      logger.logBusinessEvent("bid_created" , {
+        'bid_id': bid.bidId,
+        'client_name': bid.clientName,
+        'client_email': bid.clientMail,
+       
+      });
+
+      final bool bidFlow = await CreateBid(
+        phoneNumber: widget.phoneNumber,
+        currentBid: bid,
+        creator: firebaseUser.uid.toString(),
+      ).startNewBidFlow();
+
+      if (!bidFlow) {
+        logger.error("Failed to create bid", tag: "ProductSelection");
+
+        // Log failure
+        logger.logBusinessEvent("bid_creation_failed", {
+          'bid_id': bid.bidId,
+          'client_name': bid.clientName,
+        });
+      } else {
+        logger.info("Bid created successfully", tag: "ProductSelection");
+
+        // Log success
+        logger.logBusinessEvent("bid_creation_succeeded", {
+          'bid_id': bid.bidId,
+          'client_name': bid.clientName,
+        });
+
+        // eraseAllUserBid because we want to re-reading from BidsDb
+        bidsData.eraseAllUserBid();
+      }
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Navigate to root screen
+      Navigator.pushNamed(
+        context,
+        RootScreen.routeName,
+      );
+    } catch (e) {
+      final logger = Logger();
+      logger.error("Error creating bid", tag: "ProductSelection", exception: e);
+
+      // Close loading dialog if still showing
+      Navigator.of(context).pop();
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
   }
 }

@@ -6,9 +6,11 @@ import 'package:QuoteApp/data/local/local_reminder.dart';
 import 'package:QuoteApp/data/local/tenant_cache_box.dart';
 import 'package:QuoteApp/data/providers/tenant_provider.dart';
 import 'package:QuoteApp/data/providers/user_info_provider.dart';
+import 'package:QuoteApp/logs/console_logger.dart';
 import 'package:QuoteApp/presentation/screens/home/main_dashboard.dart';
 import 'package:QuoteApp/presentation/screens/root/root.dart';
 import 'package:QuoteApp/presentation/screens/user/login_screen.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
@@ -17,13 +19,24 @@ import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  
+  try {
+    await Firebase.initializeApp();
+    final logger = Logger();
+    logger.info("Firebase initialized successfully", tag: "App");
+  } catch (e) {
+    print("Error initializing Firebase: $e");
+  }
+  
   await TenantCacheBox.openLocalTenantValidationBox();
   await LocalReminder.openBidRemindersBox();
   runApp(QuoteAppV2Root());
 }
 
 class QuoteAppV2Root extends StatelessWidget {
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  final logger = Logger();
+  
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -32,7 +45,16 @@ class QuoteAppV2Root extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: appTheme,
         routes: appRoutes,
+        navigatorObservers: [
+          FirebaseAnalyticsObserver(analytics: analytics),
+        ],
         home: AuthenticationWrapper(),
+        navigatorKey: GlobalKey<NavigatorState>(),
+        onGenerateRoute: (settings) {
+          // Track screen views with our logger
+          logger.logScreenView(settings.name ?? 'unknown_screen');
+          return null;
+        },
       ),
     );
   }
@@ -53,6 +75,7 @@ class AuthenticationWrapper extends StatefulWidget {
 
 class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   bool _initializedData = false;
+  final logger = Logger();
 
   @override
   Widget build(BuildContext context) {
@@ -61,51 +84,68 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
     final userInfoProvider =
         Provider.of<UserInfoProvider>(context, listen: false);
 
-    // If no user is logged in, return login screen
     if (firebaseUser == null) {
       _initializedData = false;
+      logger.info("User not logged in, showing login screen", tag: "Auth");
       return LoginScreen();
     }
 
-    // User is logged in, capture user info
     AuthenticationWrapper.userInfo = {
       "user": firebaseUser.email!,
       "uid": firebaseUser.uid,
       "tenant": TenantProvider.tenantId,
     };
 
-    // Log auth info in debug mode
-    if (kDebugMode && !_initializedData) {
-      AuthenticationWrapper.userInfo.forEach(
-        (key, value) {
-          log('$key' ':' ' ' '$value');
-        },
+    if (!_initializedData) {
+      logger.info(
+        "User logged in: ${firebaseUser.email}", 
+        tag: "Auth"
       );
+      
+      logger.logBusinessEvent("user_login", {
+        "user_id": firebaseUser.uid,
+        "email": firebaseUser.email,
+        "tenant_id": TenantProvider.tenantId,
+      });
+      
+      logger.setUserProperty("tenant_id", TenantProvider.tenantId);
+      logger.setUserProperty("user_email", firebaseUser.email ?? "unknown");
     }
 
-    // Initialize data loading process and check tenant validation
-    // This will be called only once after authentication
+   
     if (!_initializedData && !userInfoProvider.hasInitialized) {
       _initializedData = true;
       _initializeUserData(tenantProvider, userInfoProvider);
     }
 
+    logger.logScreenView("RootScreen");
     return RootScreen();
   }
 
   Future<void> _initializeUserData(
       TenantProvider tenantProvider, UserInfoProvider userInfoProvider) async {
-    // Check tenant validation first
-    await tenantProvider.tenantValidation();
+    try {
+      logger.info("Validating tenant access", tag: "Auth");
+      await tenantProvider.tenantValidation();
 
-    // If it's a first time user login on this device, store tenant ID
-    if (TenantCacheBox.tenantCashBox!.isEmpty) {
-      tenantProvider.setTenantIdInLocalCache();
-    }
+      if (TenantCacheBox.tenantCashBox!.isEmpty) {
+        logger.info("First time login, storing tenant ID", tag: "Auth");
+        tenantProvider.setTenantIdInLocalCache();
+      }
 
-    // Fetch user data only if not already loaded
-    if (!userInfoProvider.hasInitialized) {
-      await userInfoProvider.fetchUserData();
+      if (!userInfoProvider.hasInitialized) {
+        logger.info("Fetching user data", tag: "Auth");
+        await userInfoProvider.fetchUserData();
+        logger.logBusinessEvent("user_data_loaded", {
+          "success": userInfoProvider.hasInitialized.toString(),
+        });
+      }
+    } catch (e) {
+      logger.error(
+        "Error initializing user data", 
+        tag: "Auth", 
+        exception: e
+      );
     }
   }
 }

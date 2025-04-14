@@ -1,8 +1,8 @@
 import 'dart:developer';
 
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show immutable, kDebugMode;
+import 'package:QuoteApp/logs/console_logger.dart';
 
 import '../../auth/tenant_repository.dart';
 import '../models/product.dart';
@@ -13,6 +13,8 @@ import 'constants/products_firestore_constants.dart';
  */
 @immutable
 class ProductsDb {
+  static final logger = Logger();
+
   static Future<String> addNewProduct(Product product) async {
     final DocumentReference<Object?>? tenantRef =
         await TenantRepositoryImpl().getTenantReference();
@@ -37,7 +39,8 @@ class ProductsDb {
       );
       return newProductDbObject.id;
     } catch (exp) {
-      print(exp.toString());
+      logger.error("Failed to add new product",
+          tag: "ProductsDB", exception: exp);
       return exp.toString();
     }
   }
@@ -62,7 +65,8 @@ class ProductsDb {
         );
       }
     } catch (exp) {
-      print(exp.toString());
+      logger.error("Failed to get all products",
+          tag: "ProductsDB", exception: exp);
       return null;
     }
     return productList;
@@ -87,7 +91,8 @@ class ProductsDb {
           .get();
       return Product.fromMap(currentProduct.docs.first.data());
     } catch (exp) {
-      print(exp.toString());
+      logger.error("Failed to find product by ID: $productId",
+          tag: "ProductsDB", exception: exp);
       return null;
     }
   }
@@ -112,7 +117,10 @@ class ProductsDb {
           .get();
       return currentProduct;
     } catch (exp) {
-      print(exp.toString());
+      logger.error(
+          "Failed to find Firestore document ID for product: $productId",
+          tag: "ProductsDB",
+          exception: exp);
       return null;
     }
   }
@@ -142,21 +150,24 @@ class ProductsDb {
             )
             .delete();
       } catch (exp) {
-        print(exp.toString());
+        logger.error("Failed to delete product document",
+            tag: "ProductsDB", exception: exp);
       }
     } catch (exp) {
-      print(exp.toString());
+      logger.error("Failed to remove product: $productId",
+          tag: "ProductsDB", exception: exp);
     }
   }
 
   static Future<void> editProduct(String productId, Product product) async {
     final DocumentReference<Object?>? tenantRef =
         await TenantRepositoryImpl().getTenantReference();
-    QuerySnapshot<Map<String, dynamic>>? currentProduct =
-        await _findFirestoreDocumentId(productId);
-    final String documentId = currentProduct!.docs.first
-        .data()[ProductFirestoreConstants.productDocumentIdString];
     try {
+      QuerySnapshot<Map<String, dynamic>>? currentProduct =
+          await _findFirestoreDocumentId(productId);
+      final String documentId = currentProduct!.docs.first
+          .data()[ProductFirestoreConstants.productDocumentIdString];
+
       await tenantRef!
           .collection(
             ProductFirestoreConstants.productsCollectionString,
@@ -168,7 +179,8 @@ class ProductsDb {
             product.toMap(),
           );
     } catch (exp) {
-      print(exp.toString());
+      logger.error("Failed to edit product: $productId",
+          tag: "ProductsDB", exception: exp);
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:QuoteApp/data/providers/tenant_provider.dart';
+import 'package:QuoteApp/logs/console_logger.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:image_picker/image_picker.dart';
@@ -10,6 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 class StorageService {
   final _storage = FirebaseStorage.instance;
   final String tenantId = TenantProvider.tenantId;
+  final logger = Logger();
 
   Future<String> _getCurrentTenantFolder() async {
     await TenantProvider().tenantValidation();
@@ -30,7 +32,8 @@ class StorageService {
       try {
         image = (await picker.pickImage(source: ImageSource.gallery))!;
         File file = File(image.path);
-        print(image.path);
+        logger.info("Selected image path: ${image.path}",
+            tag: "StorageService");
 
         final snapshot = await _storage
             .ref()
@@ -44,10 +47,11 @@ class StorageService {
 
         return downloadURL;
       } catch (exp) {
-        print(exp.toString());
+        logger.error("Error uploading product image",
+            tag: "StorageService", exception: exp);
       }
     } else {
-      print('Grant Permissions and try again');
+      logger.warning('Grant Permissions and try again', tag: "StorageService");
       return 'ERROR';
     }
     return 'Failed';
@@ -62,7 +66,7 @@ class StorageService {
           )
           .delete();
     } catch (err) {
-      print('file not removed');
+      logger.warning('File not removed', tag: "StorageService");
     }
   }
 }

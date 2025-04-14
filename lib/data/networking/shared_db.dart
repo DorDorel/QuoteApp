@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show immutable;
 
@@ -36,30 +35,41 @@ class SharedDb {
   }
 
   Future<bool> updateBidId() async {
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
-
-    final CollectionReference<Map<String, dynamic>> sharedCollection =
-        tenantRef!.collection(
-      SharedFirestoreConstants.sharedCollectionString,
-    );
-
-    final DocumentReference<Map<String, dynamic>> bidConfigDoc =
-        sharedCollection.doc(
-      SharedFirestoreConstants.bidConfigDocString,
-    );
-
     try {
-      Map<String, int> updated = {
-        SharedFirestoreConstants.currentBidIdString:
-            await getCurrentBidId() + 1,
-      };
-      bidConfigDoc.update(
-        updated,
+      print("Starting bid ID update process...");
+      final DocumentReference<Object?>? tenantRef =
+          await TenantRepositoryImpl().getTenantReference();
+
+      if (tenantRef == null) {
+        print("ERROR: Could not get tenant reference for bid ID update");
+        return false;
+      }
+
+      final CollectionReference<Map<String, dynamic>> sharedCollection =
+          tenantRef.collection(
+        SharedFirestoreConstants.sharedCollectionString,
       );
+
+      final DocumentReference<Map<String, dynamic>> bidConfigDoc =
+          sharedCollection.doc(
+        SharedFirestoreConstants.bidConfigDocString,
+      );
+
+      int currentId = await getCurrentBidId();
+      print("Current bid ID is: $currentId");
+      int newId = currentId + 1;
+
+      Map<String, int> updated = {
+        SharedFirestoreConstants.currentBidIdString: newId,
+      };
+
+      print("Updating bid ID to: $newId");
+      await bidConfigDoc.update(updated);
+      print("Bid ID successfully updated to: $newId");
+
       return true;
     } catch (exp) {
-      print(exp.toString());
+      print("ERROR updating bid ID: ${exp.toString()}");
       return false;
     }
   }

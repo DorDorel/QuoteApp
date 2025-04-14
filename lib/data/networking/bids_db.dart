@@ -13,19 +13,30 @@ class BidsDb {
   static Future<String> addBidToBidCollection(Bid bid) async {
     String bidDocId = 'null';
     try {
+      print("Starting to add bid to collection: ${bid.bidId}");
       final DocumentReference<Object?>? tenantRef =
           await TenantRepositoryImpl().getTenantReference();
+
+      if (tenantRef == null) {
+        print("ERROR: Could not get tenant reference");
+        return bidDocId;
+      }
+
       final CollectionReference<Map<String, dynamic>> bidsCollection =
-          tenantRef!.collection(BidsFirestoreConstants.bidsCollectionString);
-      await bidsCollection
-          .add(
-            bid.toMap(),
-          )
-          .then(
-            (value) => bidDocId = value.id,
-          );
+          tenantRef.collection(BidsFirestoreConstants.bidsCollectionString);
+
+      print("Converting bid to map for storage...");
+      final Map<String, dynamic> bidMap = bid.toMap();
+      print("Bid map created successfully");
+
+      await bidsCollection.add(bidMap).then((value) {
+        bidDocId = value.id;
+        print("Bid added successfully with ID: $bidDocId");
+      }).catchError((error) {
+        print("ERROR adding bid document: $error");
+      });
     } catch (exp) {
-      print(exp.toString());
+      print("CRITICAL ERROR in addBidToBidCollection: ${exp.toString()}");
     }
     return bidDocId;
   }
