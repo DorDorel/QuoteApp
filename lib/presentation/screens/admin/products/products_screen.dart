@@ -1,75 +1,73 @@
-// ignore_for_file: library_private_types_in_public_api
-
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:QuoteApp/data/providers/products_provider.dart';
 import 'package:QuoteApp/presentation/screens/admin/add_new_product_screen.dart';
 import 'package:QuoteApp/presentation/screens/admin/products/single_product_list.dart';
 
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
 class ProductsScreen extends StatefulWidget {
   static const routeName = '/products_screen';
+
+  const ProductsScreen({Key? key}) : super(key: key);
+
   @override
-  _ProductsScreenState createState() => _ProductsScreenState();
+  State<ProductsScreen> createState() => _ProductsScreenState();
 }
 
 class _ProductsScreenState extends State<ProductsScreen> {
   @override
-  Widget build(BuildContext context) {
-    //data init
-    final productsData = Provider.of<ProductProvider>(context);
-    productsData.fetchData();
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProductProvider>(context, listen: false).fetchData();
+    });
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.black54,
         title: Text(
-          'Products',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 30,
+          'Manage Products',
+          style: GoogleFonts.openSans(
             fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-        actions: <IconButton>[
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (BuildContext context) => AddNewProductScreen(
-                    isEdit: false,
-                  ),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.add,
-              size: 30,
-            ),
-          )
-        ],
+        backgroundColor: Colors.black87,
+        elevation: 2,
       ),
-      body: Padding(
-        padding: EdgeInsets.all(8),
-        child: productsData.products.isEmpty
-            ? Center(
-                child: CircularProgressIndicator(
-                color: Colors.black,
-              ))
-            : ListView.builder(
-                itemCount: productsData.products.length,
-                itemBuilder: (_, index) => Column(
-                  children: [
-                    SingleProductList(
-                        productId: productsData.products[index].productId,
-                        productName: productsData.products[index].productName,
-                        price: productsData.products[index].price,
-                        imageUrl: productsData.products[index].imageUrl,
-                        description: productsData.products[index].description)
-                  ],
-                ),
+      body: Consumer<ProductProvider>(
+        builder: (context, productsData, child) {
+          if (productsData.products.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.black87),
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: productsData.products.length,
+            itemBuilder: (_, index) => SingleProductList(
+              product: productsData.products[index],
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (BuildContext context) => const AddNewProductScreen(
+                isEdit: false,
               ),
+            ),
+          );
+        },
+        backgroundColor: Colors.black87,
+        child: const Icon(Icons.add, color: Colors.white),
+        tooltip: 'Add New Product',
       ),
     );
   }

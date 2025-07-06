@@ -2,7 +2,6 @@ import 'package:QuoteApp/data/models/bid.dart';
 import 'package:QuoteApp/data/providers/reminder_provider.dart';
 import 'package:QuoteApp/presentation/screens/bids/widgets/bids_info_table.dart';
 import 'package:QuoteApp/presentation/widgets/const_widgets/app_bar_title_style.dart';
-import 'package:QuoteApp/presentation/widgets/const_widgets/background_color.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -24,6 +23,7 @@ class BidInfo extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
+        leading: const BackButton(color: Colors.white),
         backgroundColor: Colors.black,
         elevation: 0,
         title: Text(

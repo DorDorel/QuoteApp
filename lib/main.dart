@@ -7,51 +7,52 @@ import 'package:QuoteApp/data/local/tenant_cache_box.dart';
 import 'package:QuoteApp/data/providers/tenant_provider.dart';
 import 'package:QuoteApp/data/providers/user_info_provider.dart';
 import 'package:QuoteApp/logs/console_logger.dart';
-import 'package:QuoteApp/presentation/screens/home/main_dashboard.dart';
 import 'package:QuoteApp/presentation/screens/root/root.dart';
 import 'package:QuoteApp/presentation/screens/user/login_screen.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     await Firebase.initializeApp();
     final logger = Logger();
     logger.info("Firebase initialized successfully", tag: "App");
   } catch (e) {
-    print("Error initializing Firebase: $e");
+    log("Error initializing Firebase: $e");
   }
-  
+
   await TenantCacheBox.openLocalTenantValidationBox();
   await LocalReminder.openBidRemindersBox();
-  runApp(QuoteAppV2Root());
+  runApp(const QuoteAppV2Root());
 }
 
 class QuoteAppV2Root extends StatelessWidget {
-  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
-  final logger = Logger();
-  
+  const QuoteAppV2Root({super.key});
+
+  static final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  static final Logger logger = Logger();
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: appProviders,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: appTheme,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.system,
         routes: appRoutes,
         navigatorObservers: [
           FirebaseAnalyticsObserver(analytics: analytics),
         ],
-        home: AuthenticationWrapper(),
+        home: const AuthenticationWrapper(),
         navigatorKey: GlobalKey<NavigatorState>(),
         onGenerateRoute: (settings) {
-          // Track screen views with our logger
           logger.logScreenView(settings.name ?? 'unknown_screen');
           return null;
         },
@@ -60,29 +61,24 @@ class QuoteAppV2Root extends StatelessWidget {
   }
 }
 
-//########################################################################
-// This Wrapper check:
-//  - User Auth
-//  - Verification of user access to this current Tenant
-//  - User Authorization (check if user is admin in current tenant)
-//########################################################################
 class AuthenticationWrapper extends StatefulWidget {
+  const AuthenticationWrapper({super.key});
+
   static Map<String, String> userInfo = {};
 
   @override
-  _AuthenticationWrapperState createState() => _AuthenticationWrapperState();
+  State<AuthenticationWrapper> createState() => _AuthenticationWrapperState();
 }
 
 class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   bool _initializedData = false;
-  final logger = Logger();
+  final Logger logger = Logger();
 
   @override
   Widget build(BuildContext context) {
-    final firebaseUser = Provider.of<User?>(context);
-    final tenantProvider = Provider.of<TenantProvider>(context, listen: false);
-    final userInfoProvider =
-        Provider.of<UserInfoProvider>(context, listen: false);
+    final firebaseUser = context.watch<User?>();
+    final tenantProvider = context.read<TenantProvider>();
+    final userInfoProvider = context.read<UserInfoProvider>();
 
     if (firebaseUser == null) {
       _initializedData = false;
@@ -97,22 +93,16 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
     };
 
     if (!_initializedData) {
-      logger.info(
-        "User logged in: ${firebaseUser.email}", 
-        tag: "Auth"
-      );
-      
+      logger.info("User logged in: ${firebaseUser.email}", tag: "Auth");
       logger.logBusinessEvent("user_login", {
         "user_id": firebaseUser.uid,
         "email": firebaseUser.email,
         "tenant_id": TenantProvider.tenantId,
       });
-      
       logger.setUserProperty("tenant_id", TenantProvider.tenantId);
       logger.setUserProperty("user_email", firebaseUser.email ?? "unknown");
     }
 
-   
     if (!_initializedData && !userInfoProvider.hasInitialized) {
       _initializedData = true;
       _initializeUserData(tenantProvider, userInfoProvider);
@@ -123,7 +113,9 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   }
 
   Future<void> _initializeUserData(
-      TenantProvider tenantProvider, UserInfoProvider userInfoProvider) async {
+    TenantProvider tenantProvider,
+    UserInfoProvider userInfoProvider,
+  ) async {
     try {
       logger.info("Validating tenant access", tag: "Auth");
       await tenantProvider.tenantValidation();
@@ -142,9 +134,9 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
       }
     } catch (e) {
       logger.error(
-        "Error initializing user data", 
-        tag: "Auth", 
-        exception: e
+        "Error initializing user data",
+        tag: "Auth",
+        exception: e,
       );
     }
   }

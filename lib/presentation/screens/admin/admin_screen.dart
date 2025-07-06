@@ -1,117 +1,81 @@
-
-import 'package:QuoteApp/presentation/screens/admin/products/products_screen.dart';
-import 'package:QuoteApp/presentation/widgets/admin_button_text_style.dart';
 import 'package:flutter/material.dart';
-
+import 'package:google_fonts/google_fonts.dart';
+import 'package:QuoteApp/presentation/screens/admin/products/products_screen.dart';
 import 'create_new_user.dart';
 
 class AdminScreen extends StatelessWidget {
   static const routeName = '/admin_panel';
 
+  const AdminScreen({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.black54,
         title: Text(
-          'Admin Panel',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 30,
+          'Admin Dashboard',
+          style: GoogleFonts.openSans(
             fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
+        backgroundColor: Colors.black87,
+        elevation: 2,
       ),
-      body: Center(
-        child: Column(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
           children: [
-            SizedBox(
-              height: 20.0,
+            _buildAdminCard(
+              context,
+              icon: Icons.inventory_2_outlined,
+              label: 'Manage Products',
+              onTap: () => Navigator.pushNamed(context, ProductsScreen.routeName),
             ),
-            Card(
-              child: Container(
-                color: Colors.grey[300],
-                width: 350,
-                height: 80,
-                child: TextButton(
-                  onPressed: () =>
-                      Navigator.pushNamed(context, ProductsScreen.routeName),
-                  child: Text(
-                    'Manage your products',
-                    style: textStyleDefault,
-                  ),
-                ),
+            _buildAdminCard(
+              context,
+              icon: Icons.person_add_alt_1_outlined,
+              label: 'Create New User',
+              onTap: () => Navigator.pushNamed(context, CreateNewUser.routeName),
+            ),
+            // Add more admin actions here as needed
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminCard(
+    BuildContext context,
+    {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 48, color: Colors.black87),
+            const SizedBox(height: 16),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.openSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
               ),
             ),
-            spaceDefault,
-            Card(
-              color: Colors.grey[300],
-              child: Container(
-                width: 350,
-                height: 80,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pushNamed(CreateNewUser.routeName);
-                  },
-                  child: Text(
-                    'Create new user ',
-                    style: textStyleDefault,
-                  ),
-                ),
-              ),
-            ),
-            spaceDefault,
-            // Card(
-            //   color: Colors.blue[100],
-            //   child: Container(
-            //     width: 350,
-            //     height: 80,
-            //     child: TextButton(
-            //         onPressed: () {
-            //           DbTestConnection().getFunctionsTestConnection();
-            //         },
-            //         child: Text(
-            //           'Connection Test',
-            //           style: textStyleDefault,
-            //         )),
-            //   ),
-            // ),
-            // spaceDefault,
-            // Card(
-            //   color: Colors.red[100],
-            //   child: Container(
-            //     width: 350,
-            //     height: 80,
-            //     child: TextButton(
-            //         onPressed: () async {
-            //           print(await DatabaseSevice().isAdmin());
-            //         },
-            //         child: Text(
-            //           'Check Admin ',
-            //           style: textStyleDefault,
-            //         )),
-            //   ),
-            // ),
-            // // spaceDefault,
-            // spaceDefault,
-            // spaceDefault,
-            // spaceDefault,
-            // spaceDefault,
-            // spaceDefault,
-            // spaceDefault,
-            // Card(
-            //   color: Colors.red[100],
-            //   child: Container(
-            //     width: 350,
-            //     height: 80,
-            //     child: TextButton(
-            //         onPressed: () {},
-            //         child: Text(
-            //           'Test Button',
-            //           style: textStyleDefault,
-            //         )),
-            //   ),
-            // ),
           ],
         ),
       ),

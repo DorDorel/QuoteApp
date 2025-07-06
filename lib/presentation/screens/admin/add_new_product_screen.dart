@@ -1,323 +1,215 @@
-// ignore_for_file: library_private_types_in_public_api
-
 import 'dart:developer';
-
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:QuoteApp/data/models/product.dart';
 import 'package:QuoteApp/data/providers/products_provider.dart';
-import 'package:QuoteApp/presentation/screens/constants/strings.dart';
 import 'package:QuoteApp/services/storage_service.dart';
-import 'package:awesome_dialog/awesome_dialog.dart'; // Add this import
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 
 class AddNewProductScreen extends StatefulWidget {
   static const routeName = '/add_new_product_screen';
-  final bool? isEdit;
-  final String? productId;
-  final String? productName;
-  final double? price;
-  final String? imageUrl;
-  final String? description;
+  final bool isEdit;
+  final Product? product;
 
-  const AddNewProductScreen(
-      {Key? key,
-      this.isEdit,
-      this.productId,
-      this.productName,
-      this.price,
-      this.imageUrl,
-      this.description})
-      : super(key: key);
+  const AddNewProductScreen({Key? key, required this.isEdit, this.product}) : super(key: key);
 
   @override
-  _AddNewProductScreenState createState() => _AddNewProductScreenState();
+  State<AddNewProductScreen> createState() => _AddNewProductScreenState();
 }
 
 class _AddNewProductScreenState extends State<AddNewProductScreen> {
-  Product _editProduct = Product(
-      productId: '', productName: '', price: 0, imageUrl: '', description: '');
-  final _form = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
+  late Product _editedProduct;
+  late TextEditingController _nameController;
+  late TextEditingController _priceController;
+  late TextEditingController _descriptionController;
+  String? _imageUrl;
 
-  bool _saveForm() {
-    final isValid = _form.currentState!.validate();
-    if (!isValid) {
-      return false;
-    }
-    _form.currentState!.save();
-    return true;
+  @override
+  void initState() {
+    super.initState();
+    _editedProduct = widget.product ?? Product(productId: '', productName: '', price: 0, imageUrl: '', description: '');
+    _nameController = TextEditingController(text: _editedProduct.productName);
+    _priceController = TextEditingController(text: _editedProduct.price.toString());
+    _descriptionController = TextEditingController(text: _editedProduct.description);
+    _imageUrl = _editedProduct.imageUrl;
   }
 
-  String imageName = '';
-  String imageURL = '';
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
-  // final TextEditingController idController = TextEditingController();
-  // final TextEditingController nameController = TextEditingController();
-  // final TextEditingController priceController = TextEditingController();
-  // final TextEditingController descriptionController = TextEditingController();
+  Future<void> _saveForm() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      final productsData = Provider.of<ProductProvider>(context, listen: false);
+      try {
+        if (widget.isEdit) {
+          await productsData.editProduct(_editedProduct.productId, _editedProduct);
+        } else {
+          await productsData.addNewProduct(_editedProduct);
+        }
+        Navigator.of(context).pop();
+      } catch (error) {
+        _showErrorDialog('An error occurred!', 'Could not save product.');
+      }
+    }
+  }
 
-  // @override
-  // void dispose() {
-  //   idController.dispose();
-  //   nameController.dispose();
-  //   priceController.dispose();
-  //   descriptionController.dispose();
-  //   super.dispose();
-  // }
+  Future<void> _pickAndUploadImage() async {
+    try {
+      String? imageUrl = await StorageService().uploadProductImage(_editedProduct.productId);
+      if (imageUrl != null) {
+        setState(() {
+          _imageUrl = imageUrl;
+          _editedProduct = _editedProduct.copyWith(imageUrl: imageUrl);
+        });
+      } else {
+        _showErrorDialog('Image Upload Failed', 'Please try again.');
+      }
+    } catch (e) {
+      _showErrorDialog('An error occurred!', e.toString());
+    }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.error,
+      animType: AnimType.scale,
+      title: title,
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: Colors.black87,
+    ).show();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final productsData = Provider.of<ProductProvider>(context);
-    if (widget.isEdit!) {
-      _editProduct = Product(
-        productId: widget.productId!,
-        productName: widget.productName!,
-        price: widget.price!,
-        imageUrl: widget.imageUrl!,
-        description: widget.description!,
-      );
-      imageURL = _editProduct.imageUrl;
-    }
-
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.black54,
         title: Text(
-          widget.isEdit! ? "Edit ${widget.productName}" : " New Product",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 30,
-          ),
+          widget.isEdit ? 'Edit Product' : 'Add Product',
+          style: GoogleFonts.openSans(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        actions: <IconButton>[
+        backgroundColor: Colors.black87,
+        elevation: 2,
+        actions: [
           IconButton(
-              icon: Icon(
-                Icons.save,
-              ),
-              onPressed: () {
-                if (widget.isEdit!) {
-                  _saveForm()
-                      ? productsData.editProduct(
-                          _editProduct.productId, _editProduct)
-                      : log(
-                          "error in isEdit: true _saveForm",
-                        );
-                } else {
-                  _saveForm()
-                      ? productsData.addNewProduct(_editProduct)
-                      : log(
-                          "error in isEdit: false _saveForm",
-                        );
-                }
-                Navigator.pop(context);
-              })
+            icon: const Icon(Icons.save_outlined),
+            onPressed: _saveForm,
+            tooltip: 'Save Product',
+          ),
         ],
       ),
       body: Padding(
-        padding: EdgeInsets.all(
-          16,
-        ),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
-          key: _form,
-          child: ListView(
-            children: [
-              TextFormField(
-                // controller: idController,
-                decoration: InputDecoration(
-                  labelText: Strings.labelTextId,
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildImagePicker(),
+                const SizedBox(height: 24),
+                _buildTextFormField(
+                  controller: _nameController,
+                  label: 'Product Name',
+                  validator: (value) => value!.isEmpty ? 'Please provide a name.' : null,
+                  onSaved: (value) => _editedProduct = _editedProduct.copyWith(productName: value),
                 ),
-                initialValue: widget.isEdit! ? _editProduct.productId : "",
-                textInputAction: TextInputAction.next,
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return Strings.requiredId;
-                  }
-                  return null;
-                },
-                onChanged: (value) => {imageName = value},
-                onSaved: (value) => {
-                  _editProduct = Product(
-                      productId: value!,
-                      productName: _editProduct.productName,
-                      price: _editProduct.price,
-                      imageUrl: _editProduct.imageUrl,
-                      description: _editProduct.description),
-                },
-              ),
-              TextFormField(
-                // controller: nameController,
-                decoration: InputDecoration(
-                  labelText: Strings.labelTextProductName,
+                const SizedBox(height: 16),
+                _buildTextFormField(
+                  controller: _priceController,
+                  label: 'Price',
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value!.isEmpty) return 'Please enter a price.';
+                    if (double.tryParse(value) == null) return 'Please enter a valid number.';
+                    if (double.parse(value) <= 0) return 'Please enter a number greater than zero.';
+                    return null;
+                  },
+                  onSaved: (value) => _editedProduct = _editedProduct.copyWith(price: double.parse(value!)),
                 ),
-                initialValue: widget.isEdit!
-                    ? _editProduct.productName
-                    : Strings.emptyString,
-                textInputAction: TextInputAction.next,
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return Strings.requiredName;
-                  }
-
-                  return null;
-                },
-                onSaved: (value) => {
-                  _editProduct = Product(
-                    productId: _editProduct.productId,
-                    productName: value!,
-                    price: _editProduct.price,
-                    imageUrl: _editProduct.imageUrl,
-                    description: _editProduct.description,
-                  ),
-                },
-              ),
-              TextFormField(
-                // controller: priceController,
-                decoration: InputDecoration(
-                  labelText: Strings.labelTextPrice,
+                const SizedBox(height: 16),
+                _buildTextFormField(
+                  controller: _descriptionController,
+                  label: 'Description',
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value!.isEmpty) return 'Please provide a description.';
+                    if (value.length < 10) return 'Should be at least 10 characters long.';
+                    return null;
+                  },
+                  onSaved: (value) => _editedProduct = _editedProduct.copyWith(description: value),
                 ),
-                initialValue:
-                    widget.isEdit! ? _editProduct.price.toString() : "",
-                textInputAction: TextInputAction.next,
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return Strings.requiredPrice;
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Please Enter a VALID number ';
-                  }
-                  if (double.parse(value) <= 0) {
-                    return 'Please enter a number GREATER then Zero';
-                  }
-
-                  return null;
-                },
-                onSaved: (value) => {
-                  _editProduct = Product(
-                    productId: _editProduct.productId,
-                    productName: _editProduct.productName,
-                    price: double.parse(value!),
-                    imageUrl: _editProduct.imageUrl,
-                    description: _editProduct.description,
-                  ),
-                },
-              ),
-              TextFormField(
-                // controller: descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                ),
-                initialValue: widget.isEdit! ? _editProduct.description : "",
-                textInputAction: TextInputAction.next,
-                maxLines: 3,
-                keyboardType: TextInputType.multiline,
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Please enter a Description';
-                  }
-                  if (value.length < 10) {
-                    return 'Should be at least 10 characters long';
-                  }
-
-                  return null;
-                },
-                onSaved: (value) => {
-                  _editProduct = Product(
-                    productId: _editProduct.productId,
-                    productName: _editProduct.productName,
-                    price: _editProduct.price,
-                    imageUrl: _editProduct.imageUrl,
-                    description: value!,
-                  ),
-                },
-              ),
-              SizedBox(
-                height: 30.0,
-              ),
-              imageURL == ''
-                  ? TextButton(
-                      onPressed: () async {
-                        try {
-                          String imageInBucket = await StorageService()
-                              .uploadProductImage(imageName);
-                          if (imageInBucket == "ERROR" ||
-                              imageInBucket == "Failed") {
-                            return _uploadImageErrorManger(
-                              context,
-                              imageInBucket,
-                            );
-                          } else {
-                            print(imageInBucket);
-                            setState(
-                              () => imageURL = imageInBucket,
-                            );
-                            _editProduct = Product(
-                              productId: _editProduct.productId,
-                              productName: _editProduct.productName,
-                              price: _editProduct.price,
-                              imageUrl: imageInBucket,
-                              description: _editProduct.description,
-                            );
-                          }
-                        } catch (exp) {
-                          print(exp.toString());
-                        }
-                      },
-                      child: Text(
-                        "Upload product image",
-                        style: TextStyle(
-                          fontSize: 20.0,
-                        ),
-                      ),
-                    )
-                  : GestureDetector(
-                      onTap: () => print(
-                        "yes",
-                      ),
-                      child: Image.network(
-                        imageURL,
-                        height: 200,
-                        width: 100,
-                      ),
-                    ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-Future<dynamic>? _uploadImageErrorManger(
-    BuildContext context, String errorMessage) {
-  switch (errorMessage) {
-    case "ERROR":
-      {
-        return AwesomeDialog(
-          context: context,
-          dialogType: DialogType.error,
-          animType: AnimType.scale,
-          title: 'Error',
-          desc: "Grant Permissions and try again",
-          btnOkOnPress: () {},
-          btnOkColor: Colors.black,
-          width: 400,
-        ).show();
-      }
-    case "Failed":
-      {
-        return AwesomeDialog(
-          context: context,
-          dialogType: DialogType.error,
-          animType: AnimType.scale,
-          title: 'Error',
-          desc:
-              "Operation failed. We will contact you as soon as possible to deal with the fault.",
-          btnOkOnPress: () {},
-          btnOkColor: Colors.black,
-          width: 400,
-        ).show();
-      }
+  Widget _buildImagePicker() {
+    return GestureDetector(
+      onTap: _pickAndUploadImage,
+      child: Container(
+        height: 200,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300, width: 1),
+        ),
+        child: _imageUrl != null && _imageUrl!.isNotEmpty
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(_imageUrl!, fit: BoxFit.cover),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.cloud_upload_outlined, size: 48, color: Colors.grey.shade500),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Upload Product Image',
+                    style: GoogleFonts.openSans(color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+      ),
+    );
   }
-  return null;
+
+  Widget _buildTextFormField({
+    required TextEditingController controller,
+    required String label,
+    int? maxLines = 1,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+    void Function(String?)? onSaved,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.openSans(color: Colors.grey.shade600),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.black87, width: 2),
+        ),
+      ),
+      validator: validator,
+      onSaved: onSaved,
+    );
+  }
 }

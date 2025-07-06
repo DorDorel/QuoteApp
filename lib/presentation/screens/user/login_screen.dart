@@ -1,180 +1,157 @@
-import 'package:QuoteApp/auth/auth_repository.dart';
-import 'package:QuoteApp/data/providers/user_info_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../home/main_dashboard.dart';
+import 'package:QuoteApp/auth/auth_repository.dart';
+import 'package:QuoteApp/data/providers/user_info_provider.dart';
+import 'package:QuoteApp/presentation/screens/home/main_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login_screen';
+
+  const LoginScreen({super.key});
+
   @override
-  // ignore: library_private_types_in_public_api
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final AuthenticationRepository _auth = AuthenticationRepositoryImpl();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
 
-  late String email;
-  late String password;
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _signIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Clear any previous user data
+    context.read<UserInfoProvider>().cleanUserMemory(context, false);
+
+    try {
+      final result = await _auth.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (mounted) {
+        if (result) {
+          Navigator.of(context).pushReplacementNamed(MainDashboard.routeName);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Authentication failed. Please check your credentials.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('An error occurred: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey[300],
       body: SafeArea(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 400,
-                  height: 400,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage("assets/images/login.png"),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                const SizedBox(height: 40),
+                Image.asset(
+                  "assets/images/login.png",
+                  width: 200,
+                  height: 200,
                 ),
-                SizedBox(
-                  height: 10.0,
-                ),
+                const SizedBox(height: 24),
                 Text(
-                  "Welcome back!",
-                  style: GoogleFonts.bebasNeue(
-                    fontSize: 52,
+                  "Welcome Back!",
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(
-                  height: 10.0,
-                ),
+                const SizedBox(height: 8),
                 Text(
-                  " You have been messed :(",
-                  style: TextStyle(
-                    fontSize: 20.0,
+                  "Sign in to continue",
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.secondary,
                   ),
                 ),
-                SizedBox(
-                  height: 30.0,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 25.0,
+                const SizedBox(height: 32),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Organization Email',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email),
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      border: Border.all(
-                        color: Colors.white,
-                      ),
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.only(left: 20.0),
-                      child: TextField(
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Your organization email',
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onEditingComplete: _isLoading ? null : _signIn,
+                ),
+                const SizedBox(height: 24),
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: _signIn,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        onChanged: (value) => email = value,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 10.0,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 25.0,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      border: Border.all(
-                        color: Colors.white,
-                      ),
-                      borderRadius: BorderRadius.circular(
-                        12.0,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        left: 20.0,
-                      ),
-                      child: TextField(
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Password',
-                        ),
-                        onChanged: (value) => password = value,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 20.0,
-                ),
-                InkWell(
-                  onTap: () async {
-                    context
-                        .read<UserInfoProvider>()
-                        .cleanUserMemory(context, false);
-                    bool result = await _auth.signIn(
-                      email: email,
-                      password: password,
-                    );
-                    if (result) {
-                      Navigator.pushNamed(
-                        context,
-                        MainDashboard.routeName,
-                      );
-                    } else {
-                      print('!!!AUTHENTICATION ERROR!!!');
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 25.0,
-                    ),
-                    child: Container(
-                      padding: EdgeInsets.all(20.0),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.black,
-                      ),
-                      child: Center(
-                        child: Text(
+                        child: const Text(
                           "Sign In",
                           style: TextStyle(
                             fontSize: 18.0,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
                           ),
                         ),
                       ),
-                    ),
-                  ),
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () {
+                    // TODO: Implement password recovery
+                  },
+                  child: const Text("Forgot your password?"),
                 ),
-                SizedBox(
-                  height: 20.0,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Forgot your password? "),
-                    Text(
-                      "Restore here",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  ],
-                )
               ],
             ),
           ),

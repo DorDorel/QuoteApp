@@ -55,6 +55,7 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
     final currentBidData = Provider.of<NewBidsProvider>(context);

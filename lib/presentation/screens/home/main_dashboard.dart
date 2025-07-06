@@ -1,57 +1,64 @@
-import 'package:QuoteApp/data/providers/tenant_provider.dart';
-
-import 'package:QuoteApp/presentation/screens/bids/bids_archive_screen.dart';
-import 'package:QuoteApp/presentation/screens/bids/open_bids_screen.dart';
-import 'package:QuoteApp/presentation/screens/home/widgets/home_dashboard_header.dart';
-import 'package:QuoteApp/presentation/screens/reminders/reminders_screen.dart';
-
-import 'package:QuoteApp/presentation/widgets/filter_menu.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../../../data/providers/bids_provider.dart';
-import '../../../data/providers/user_info_provider.dart';
-import '../admin/admin_screen.dart';
+import 'package:QuoteApp/data/providers/tenant_provider.dart';
+import 'package:QuoteApp/presentation/screens/bids/bids_archive_screen.dart';
+import 'package:QuoteApp/presentation/screens/bids/open_bids_screen.dart';
+import 'package:QuoteApp/presentation/screens/reminders/reminders_screen.dart';
+import 'package:QuoteApp/data/providers/bids_provider.dart';
+import 'package:QuoteApp/data/providers/user_info_provider.dart';
+import 'package:QuoteApp/presentation/screens/admin/admin_screen.dart';
 
 class MainDashboard extends StatefulWidget {
   static const routeName = '/main_dashboard';
+
+  const MainDashboard({super.key});
 
   @override
   State<MainDashboard> createState() => _MainDashboardState();
 }
 
 class _MainDashboardState extends State<MainDashboard> {
-  int fabIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+    Provider.of<BidsProvider>(context, listen: false).fetchData();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bidsData = Provider.of<BidsProvider>(context);
-
-    bidsData.fetchData();
+    final theme = Theme.of(context);
 
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: Colors.grey[300],
-        body: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(
-                height: 30,
-              ),
-              HomeDashboardHeader(),
-              const SizedBox(height: 18),
-              FilterMenu(),
-              // const HomeWidgetSelector(),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    OpenBidScreen(),
-                    BidsArchiveScreen(),
-                    RemindersScreen(),
+        body: NestedScrollView(
+          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+            return <Widget>[
+              SliverAppBar(
+                title: const HomeTitle(),
+                pinned: true,
+                floating: true,
+                forceElevated: innerBoxIsScrolled,
+                bottom: TabBar(
+                  tabs: const [
+                    Tab(text: 'Quotes'),
+                    Tab(text: 'Archive'),
+                    Tab(text: 'Reminders'),
                   ],
+                  labelColor: Colors.black,
+                  unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                  indicatorColor: Colors.black,
                 ),
+                automaticallyImplyLeading: false,
               ),
+            ];
+          },
+          body: TabBarView(
+            children: [
+              OpenBidScreen(),
+              BidsArchiveScreen(),
+              RemindersScreen(),
             ],
           ),
         ),
@@ -61,71 +68,49 @@ class _MainDashboardState extends State<MainDashboard> {
 }
 
 class HomeTitle extends StatelessWidget {
-  const HomeTitle({
-    Key? key,
-  }) : super(key: key);
+  const HomeTitle({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final userData = context.read<UserInfoProvider>();
-    return userData.userData == null
-        ? CircularProgressIndicator(
-            color: Colors.black,
+    final theme = Theme.of(context);
+    final userData = context.watch<UserInfoProvider>();
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        if (userData.userData == null)
+          const SizedBox(
+            height: 24,
+            width: 24,
+            child: CircularProgressIndicator(strokeWidth: 2.0),
           )
-        : Container(
-            height: 180,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.only(
-                bottomRight: Radius.circular(20),
-                topRight: Radius.circular(20),
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Live Dashboard",
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              color: Colors.grey[900],
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 60,
-                  left: 0,
-                  child: Container(
-                    height: 80,
-                    width: 360,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
-                      ),
-                    ),
-                  ),
+              const SizedBox(height: 2),
+              Text(
+                userData.userData!.name,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.secondary,
                 ),
-                Positioned(
-                  top: 80,
-                  left: 10,
-                  child: Text(
-                    "${userData.userData!.name} Live Dashboard",
-                    style: GoogleFonts.bebasNeue(
-                      color: Colors.black87,
-                      fontSize: 38,
-                    ),
-                  ),
-                ),
-                TenantProvider.checkAdmin
-                    ? Positioned(
-                        top: 3,
-                        right: 0.5,
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.admin_panel_settings_sharp,
-                            color: Colors.white,
-                          ),
-                          onPressed: () {
-                            Navigator.pushNamed(context, AdminScreen.routeName);
-                          },
-                        ),
-                      )
-                    : Text('')
-              ],
-            ),
-          );
+              ),
+            ],
+          ),
+        if (TenantProvider.checkAdmin)
+          IconButton(
+            icon: const Icon(Icons.admin_panel_settings_sharp),
+            onPressed: () {
+              Navigator.pushNamed(context, AdminScreen.routeName);
+            },
+          ),
+      ],
+    );
   }
 }

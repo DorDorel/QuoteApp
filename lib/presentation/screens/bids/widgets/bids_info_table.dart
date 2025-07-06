@@ -1,59 +1,45 @@
-import 'package:QuoteApp/data/models/bid.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import 'package:QuoteApp/data/models/bid.dart';
 
 Widget bidsInfoTable(BuildContext context, Bid bid) {
-  final tableWidth = MediaQuery.of(context).size.width - 40;
+  final theme = Theme.of(context);
 
-  return SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    child: DataTable(
-      columnSpacing: 16,
-      headingTextStyle: GoogleFonts.openSans(
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
+  return SizedBox(
+    width: double.infinity,
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columnSpacing: 16,
+        headingTextStyle: theme.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.onSurface,
+        ),
+        dataTextStyle: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurface,
+        ),
+        columns: const [
+          DataColumn(label: Text("Item")),
+          DataColumn(label: Text("Quantity"), numeric: true),
+          DataColumn(label: Text("Warranty")),
+          DataColumn(label: Text("Price per unit"), numeric: true),
+          DataColumn(label: Text("Final Price"), numeric: true),
+        ],
+        rows: _getTableRows(bid),
       ),
-      dataTextStyle: GoogleFonts.openSans(
-        color: Colors.black,
-      ),
-      columns: [
-        DataColumn(
-          label: Container(
-            width: tableWidth * 0.3,
-            child: Text(
-              "Item",
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-        DataColumn(
-          label: Text("Quantity"),
-        ),
-        DataColumn(
-          label: Text("Warranty"),
-        ),
-        DataColumn(
-          label: Text("Price per unit"),
-        ),
-        DataColumn(
-          label: Text("Final Price"),
-        )
-      ],
-      rows: _getTableRows(bid, tableWidth),
     ),
   );
 }
 
-List<DataRow> _getTableRows(Bid bid, double tableWidth) {
+List<DataRow> _getTableRows(Bid bid) {
   final oCcy = NumberFormat("#,##0.00", "en_US");
 
-  List<DataRow> products = [];
-  for (final element in bid.selectedProducts) {
-    final DataRow dataRow = DataRow(cells: [
+  return bid.selectedProducts.map((element) {
+    return DataRow(cells: [
       DataCell(
-        Container(
-          width: tableWidth * 0.3,
+        SizedBox(
+          width: 150, // Set a fixed width for the item column
           child: Text(
             element.product.productName,
             overflow: TextOverflow.ellipsis,
@@ -61,31 +47,10 @@ List<DataRow> _getTableRows(Bid bid, double tableWidth) {
           ),
         ),
       ),
-      DataCell(
-        Text(
-          element.quantity.toString(),
-        ),
-      ),
-      DataCell(
-        Text(
-          "${element.warrantyMonths} mo",
-        ),
-      ),
-      DataCell(
-        Text(
-          oCcy.format(element.product.price),
-        ),
-      ),
-      DataCell(
-        Text(
-          oCcy.format(
-            (element.product.price * element.quantity),
-          ),
-        ),
-      )
+      DataCell(Text(element.quantity.toString())),
+      DataCell(Text("${element.warrantyMonths} mo")),
+      DataCell(Text(oCcy.format(element.product.price))),
+      DataCell(Text(oCcy.format(element.product.price * element.quantity))),
     ]);
-    products.add(dataRow);
-  }
-
-  return products;
+  }).toList();
 }

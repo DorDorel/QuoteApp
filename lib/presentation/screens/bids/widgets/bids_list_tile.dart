@@ -2,12 +2,14 @@ import 'package:QuoteApp/data/models/bid.dart';
 import 'package:QuoteApp/presentation/screens/bids/bid_info.dart';
 import 'package:QuoteApp/services/email_service.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'open_bid_card_menu.dart';
 
 class BidTile extends StatelessWidget {
   final bool archiveScreen;
   final Bid bid;
+
   const BidTile({
     required this.bid,
     required this.archiveScreen,
@@ -16,185 +18,151 @@ class BidTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String bidId = bid.bidId;
-    final bool? isOpen = bid.openFlag;
-    final String clientName = bid.clientName;
-    final oCcy = NumberFormat("#,##0.00", "en_US");
+    final bool isOpen = bid.openFlag ?? false;
+    final Color primaryColor = isOpen ? Colors.green.shade700 : Colors.grey.shade600;
+    final Color backgroundColor = isOpen ? Colors.green.shade50 : Colors.grey.shade100;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-      child: GestureDetector(
-        onTap: () {
-          if (!archiveScreen) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (BuildContext context) => BidInfo(bid: bid),
-              ),
-            );
-          }
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isOpen == true
-                  ? [
-                      Colors.white,
-                      Color(0xFFE8F5E9)
-                    ] // Light green tint for open bids
-                  : [
-                      Colors.white,
-                      Colors.grey.shade100
-                    ], // Neutral for closed bids
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: () {
+        if (!archiveScreen) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (BuildContext context) => BidInfo(bid: bid),
             ),
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.15),
-                blurRadius: 8,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
+          );
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.07),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Bid Status Indicator
+              // Status Indicator
               Container(
-                height: 6,
+                width: 8,
                 decoration: BoxDecoration(
-                  color: isOpen == true ? Colors.green : Colors.grey.shade400,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(15),
-                    topRight: Radius.circular(15),
+                  color: primaryColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    bottomLeft: Radius.circular(16),
                   ),
                 ),
               ),
-
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Client info section
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: isOpen == true
-                                      ? Colors.green.withOpacity(0.1)
-                                      : Colors.grey.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  Icons.person_outline_rounded,
-                                  color: isOpen == true
-                                      ? Colors.green.shade700
-                                      : Colors.grey.shade700,
-                                  size: 22,
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      clientName,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      "Quote #${bidId}",
-                                      style: TextStyle(
-                                        color: Colors.black54,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      "${oCcy.format(bid.finalPrice)} ₪",
-                                      style: TextStyle(
-                                        color: Colors.black87,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Action buttons
-                        archiveScreen
-                            ? IconButton(
-                                onPressed: () async {
-                                  EmailService emailService = EmailService(
-                                    to: bid.clientMail,
-                                  );
-                                  emailService
-                                      .openDefaultMainAppWithAddressClient();
-                                },
-                                icon: Container(
-                                  padding: EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    Icons.email_outlined,
-                                    color: Colors.blue.shade700,
-                                  ),
-                                ),
-                              )
-                            : OpenTileMenu(
-                                bidId: bidId,
-                                clientMail: bid.clientMail,
-                                phoneNumber: bid.clientPhone,
-                              ),
-                      ],
-                    ),
-
-                    // Date indicator
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0, left: 4.0),
-                      child: Row(
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header: Client Name & Actions
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            size: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            DateFormat('MMM dd, yyyy').format(bid.date),
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12,
+                          Expanded(
+                            child: Text(
+                              bid.clientName,
+                              style: GoogleFonts.openSans(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
+                          ),
+                          archiveScreen
+                              ? IconButton(
+                                  onPressed: () async {
+                                    EmailService emailService = EmailService(
+                                      to: bid.clientMail,
+                                    );
+                                    emailService.openDefaultMainAppWithAddressClient();
+                                  },
+                                  icon: Icon(Icons.email_outlined, color: Colors.grey.shade500),
+                                  tooltip: 'Email Client',
+                                )
+                              : OpenTileMenu(
+                                  bidId: bid.bidId,
+                                  clientMail: bid.clientMail,
+                                  phoneNumber: bid.clientPhone,
+                                ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Sub-header: Quote ID
+                      Text(
+                        "Quote #${bid.bidId}",
+                        style: GoogleFonts.openSans(
+                          color: Colors.black54,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Divider(height: 24, thickness: 1),
+
+                      // Details: Date and Price
+                      Row(
+                        children: [
+                          _buildInfoChip(
+                            icon: Icons.calendar_today_outlined,
+                            text: DateFormat('MMM dd, yyyy').format(bid.date),
+                          ),
+                          const SizedBox(width: 12),
+                          _buildInfoChip(
+                            icon: Icons.monetization_on_outlined,
+                            text: "${NumberFormat("#,##0.00", "en_US").format(bid.finalPrice)} ₪",
+                            highlight: true,
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip({required IconData icon, required String text, bool highlight = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: highlight ? Colors.blue.shade50 : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: highlight ? Colors.blue.shade700 : Colors.grey.shade700,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: GoogleFonts.openSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: highlight ? Colors.blue.shade800 : Colors.grey.shade800,
+            ),
+          ),
+        ],
       ),
     );
   }
