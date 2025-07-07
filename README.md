@@ -27,7 +27,6 @@ Create, manage, and send professional quotes with ease—right from your phone.
 ✅✅✅ **Update (31.12.2023):** Production Ready 🚀🚀🚀
 
 ### 🎥 Demos:
-◉ **Admin Panel Demo:** [Watch on YouTube](https://www.youtube.com/watch?v=0zgNTF5M7XM)
 
 ---
 
