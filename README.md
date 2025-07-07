@@ -6,19 +6,17 @@ QuoteApp is a Flutter Cross Platform project that allows users to send quotes vi
 
 ## ✅✅✅ Update (25.12.2024): new UI 🚀🚀🚀
 
+Create, manage, and send professional quotes with ease—right from your phone.
+
 <div align="center">
 
-<a href="https://www.youtube.com/shorts/RJ9SxbftBJM" target="_blank">
-  <img src="https://img.youtube.com/vi/RJ9SxbftBJM/0.jpg" alt="Short demo 1" width="250" style="margin-right: 10px;" />
-</a>
-
-<a href="https://www.youtube.com/shorts/bA1W4K2J0ug" target="_blank">
-  <img src="https://img.youtube.com/vi/bA1W4K2J0ug/0.jpg" alt="Short demo 2" width="250" style="margin-right: 10px;" />
-</a>
-
-<a href="https://www.youtube.com/shorts/On38RHdnoqs" target="_blank">
-  <img src="https://img.youtube.com/vi/On38RHdnoqs/0.jpg" alt="Short demo 3" width="250" />
-</a>
+<img src="demo/a.png" alt="Screenshot A" width="300" style="margin: 10px;" />
+<img src="demo/b.png" alt="Screenshot B" width="300" style="margin: 10px;" />
+<img src="demo/c.png" alt="Screenshot C" width="300" style="margin: 10px;" />
+<img src="demo/d.png" alt="Screenshot D" width="300" style="margin: 10px;" />
+<img src="demo/e.png" alt="Screenshot E" width="300" style="margin: 10px;" />
+<img src="demo/f.png" alt="Screenshot F" width="300" style="margin: 10px;" />
+<img src="demo/g.png" alt="Screenshot G" width="300" style="margin: 10px;" />
 
 </div>
 
