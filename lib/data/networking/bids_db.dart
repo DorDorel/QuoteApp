@@ -1,86 +1,103 @@
-import 'dart:developer';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show immutable, kDebugMode;
+import 'package:logger/logger.dart';
 
 import '../../auth/auth_repository.dart';
 import '../../auth/tenant_repository.dart';
 import '../models/bid.dart';
 import 'constants/bids_firestore_constants.dart';
+import 'database_exception.dart';
 
 @immutable
 class BidsDb {
+  static final Logger _logger = Logger();
+
   static Future<String> addBidToBidCollection(Bid bid) async {
-    String bidDocId = 'null';
     try {
-      print("Starting to add bid to collection: ${bid.bidId}");
-      final DocumentReference<Object?>? tenantRef =
-          await TenantRepositoryImpl().getTenantReference();
+      _logger.d("Starting to add bid to collection: ${bid.bidId}");
+      final tenantRef = await TenantRepositoryImpl().getTenantReference();
 
       if (tenantRef == null) {
-        print("ERROR: Could not get tenant reference");
-        return bidDocId;
+        throw DatabaseException("Could not get tenant reference");
       }
 
-      final CollectionReference<Map<String, dynamic>> bidsCollection =
+      final bidsCollection =
           tenantRef.collection(BidsFirestoreConstants.bidsCollectionString);
 
-      print("Converting bid to map for storage...");
-      final Map<String, dynamic> bidMap = bid.toMap();
-      print("Bid map created successfully");
+      _logger.d("Converting bid to map for storage...");
+      final bidMap = bid.toMap();
+      _logger.d("Bid map created successfully");
 
-      await bidsCollection.add(bidMap).then((value) {
-        bidDocId = value.id;
-        print("Bid added successfully with ID: $bidDocId");
-      }).catchError((error) {
-        print("ERROR adding bid document: $error");
-      });
-    } catch (exp) {
-      print("CRITICAL ERROR in addBidToBidCollection: ${exp.toString()}");
+      final docRef = await bidsCollection.add(bidMap);
+      _logger.d("Bid added successfully with ID: ${docRef.id}");
+      return docRef.id;
+    } catch (e, stackTrace) {
+      _logger.e(
+        "CRITICAL ERROR in addBidToBidCollection: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Failed to add bid to collection",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
-    return bidDocId;
   }
 
   static Future<List<Bid>> getAllUserBids() async {
-    List<Bid> allBids = [];
-    final String uID = AuthenticationRepositoryImpl.getCurrentUserUID;
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
+    final uID = AuthenticationRepositoryImpl.getCurrentUserUID;
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
+
+    if (tenantRef == null) {
+      throw DatabaseException("Could not get tenant reference for getAllUserBids");
+    }
 
     try {
-      QuerySnapshot<Map<String, dynamic>> bidsCollection = await tenantRef!
+      final bidsCollection = await tenantRef
           .collection(
             BidsFirestoreConstants.bidsCollectionString,
           )
+          .where(BidsFirestoreConstants.createdByString, isEqualTo: uID)
           .get();
 
-      for (final bid in bidsCollection.docs) {
+      final allBids = bidsCollection.docs.map((doc) {
         try {
-          final bidObject = Bid.fromMap(bid.data());
-          if (bidObject.createdBy == uID) {
-            allBids.add(bidObject);
-          }
-        } catch (e) {
-          print(
-              "ERROR parsing bid document: ${bid.id}, error: ${e.toString()}");
+          return Bid.fromMap(doc.data());
+        } catch (e, stackTrace) {
+          _logger.e(
+            "ERROR parsing bid document: ${doc.id}, error: ${e.toString()}",
+            error: e,
+            stackTrace: stackTrace,
+          );
+          return null;
         }
-      }
-    } catch (exp) {
-      print("ERROR FROM getAllUserBids: ${exp.toString()}");
-    }
+      }).whereType<Bid>().toList();
 
-    allBids.sort(
-      (a, b) => a.bidId.compareTo(b.bidId),
-    );
-    return allBids;
+      allBids.sort((a, b) => a.bidId.compareTo(b.bidId));
+      return allBids;
+    } catch (e, stackTrace) {
+      _logger.e(
+        "ERROR FROM getAllUserBids: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Failed to get all user bids",
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   static Future<Bid?> findBidByBidId(String bidId) async {
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
+
+    if (tenantRef == null) {
+      throw DatabaseException("Could not get tenant reference for findBidByBidId");
+    }
 
     try {
-      QuerySnapshot<Map<String, dynamic>> currentBid = await tenantRef!
+      final currentBid = await tenantRef
           .collection(
             BidsFirestoreConstants.bidsCollectionString,
           )
@@ -90,23 +107,41 @@ class BidsDb {
           )
           .get();
 
+      if (currentBid.docs.isEmpty) {
+        _logger.d("No bid found with bidId: $bidId");
+        return null;
+      }
+
       if (kDebugMode) {
-        log("*🐛 DEBUG LOG* : Database Query - findBidByBidId from BidsDb reading");
+        _logger.d(
+            "Database Query - findBidByBidId from BidsDb reading for bidId: $bidId");
       }
 
       return Bid.fromMap(currentBid.docs.first.data());
-    } catch (err) {
-      print('err');
-      return null;
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Error finding bid by bidId: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Error finding bid by bidId",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
-  static Future<String?> findBidDocByBidId(String bidId) async {
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
+  static Future<String> _findBidDocIdByBidId(String bidId) async {
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
+
+    if (tenantRef == null) {
+      throw DatabaseException(
+          "Could not get tenant reference for _findBidDocIdByBidId");
+    }
 
     try {
-      QuerySnapshot<Map<String, dynamic>> currentBid = await tenantRef!
+      final currentBid = await tenantRef
           .collection(
             BidsFirestoreConstants.bidsCollectionString,
           )
@@ -116,46 +151,61 @@ class BidsDb {
           )
           .get();
 
+      if (currentBid.docs.isEmpty) {
+        throw DatabaseException("No bid document found with bidId: $bidId");
+      }
+
       if (kDebugMode) {
-        log("*🐛 DEBUG LOG* : Database Query - findBidByBidId from BidsDb reading");
+        _logger.d(
+            "Database Query - _findBidDocIdByBidId from BidsDb reading for bidId: $bidId");
       }
 
       return currentBid.docs.first.id;
-    } catch (exp) {
-      print('exp'.toString());
-      return null;
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Error finding bid document by bidId: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Error finding bid document by bidId",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   static Future<void> closeBidFlag(String bidId) async {
-    Bid? currentBid = await findBidByBidId(
-      bidId,
-    );
-    if (currentBid != null) {
-      final DocumentReference<Object?>? tenantRef =
-          await TenantRepositoryImpl().getTenantReference();
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
 
-      try {
-        final CollectionReference<Map<String, dynamic>> bidsList =
-            tenantRef!.collection(
-          BidsFirestoreConstants.bidsCollectionString,
-        );
-        final bidDocId = await findBidDocByBidId(bidId);
-        final DocumentReference updateOpenBidFlagDbObject = bidsList.doc(
-          bidDocId,
-        );
-        updateOpenBidFlagDbObject.update(
-          {
-            BidsFirestoreConstants.openFlagString: false,
-          },
-        );
+    if (tenantRef == null) {
+      throw DatabaseException("Could not get tenant reference for closeBidFlag");
+    }
 
-        if (kDebugMode) {
-          log("🐛 *DEBUG LOG* : Database Query - closeBidFlag from BidsDb reading");
-        }
-      } catch (exp) {
-        print(exp.toString());
+    try {
+      final bidDocId = await _findBidDocIdByBidId(bidId);
+      final bidsList =
+          tenantRef.collection(BidsFirestoreConstants.bidsCollectionString);
+
+      await bidsList.doc(bidDocId).update({
+        BidsFirestoreConstants.openFlagString: false,
+      });
+
+      if (kDebugMode) {
+        _logger.d(
+            "Database Query - closeBidFlag from BidsDb reading for bidId: $bidId");
       }
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Error closing bid flag for bidId: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Error closing bid flag for bidId",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 }

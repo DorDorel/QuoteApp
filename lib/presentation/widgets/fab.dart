@@ -15,9 +15,7 @@ class Fab extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(
-              0.4,
-            ),
+            color: Color.fromRGBO(0, 0, 0, 0.4),
             spreadRadius: 4,
             blurRadius: 14,
             offset: Offset(3, 3),

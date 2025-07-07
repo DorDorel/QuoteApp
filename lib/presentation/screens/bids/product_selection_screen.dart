@@ -5,9 +5,7 @@ import 'package:QuoteApp/data/providers/new_bids_provider.dart';
 import 'package:QuoteApp/logic/create_bid_logic.dart';
 import 'package:QuoteApp/logic/product_bid_logic.dart';
 import 'package:QuoteApp/presentation/screens/bids/widgets/product_list.dart';
-import 'package:QuoteApp/presentation/screens/home/main_dashboard.dart';
 import 'package:QuoteApp/presentation/screens/root/root.dart';
-import 'package:QuoteApp/presentation/widgets/const_widgets/background_color.dart';
 import 'package:QuoteApp/logs/console_logger.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -129,7 +127,7 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Color.fromRGBO(0, 0, 0, 0.05),
               blurRadius: 10,
               offset: Offset(0, 5),
             ),
@@ -165,7 +163,7 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Color.fromRGBO(0, 0, 0, 0.2),
             blurRadius: 8,
             offset: Offset(0, 3),
           ),
@@ -176,7 +174,7 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Color.fromRGBO(255, 255, 255, 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(Icons.person_outline, color: Colors.white),
@@ -199,7 +197,7 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
                   widget.email,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Color.fromRGBO(255, 255, 255, 0.8),
                   ),
                 ),
               ],
@@ -235,7 +233,7 @@ class _ProductSelectionScreenState extends State<ProductSelectionScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Color.fromRGBO(0, 0, 0, 0.05),
             offset: Offset(0, -3),
             blurRadius: 10,
           ),

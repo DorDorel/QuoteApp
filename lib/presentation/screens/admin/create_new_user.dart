@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:QuoteApp/auth/auth_repository.dart';
 import 'package:QuoteApp/data/models/user.dart';
 import 'package:QuoteApp/data/providers/tenant_provider.dart';

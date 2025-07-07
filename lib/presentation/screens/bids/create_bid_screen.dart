@@ -235,7 +235,7 @@ class _NewBidFormState extends State<NewBidForm> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Color.fromRGBO(0, 0, 0, 0.08),
                   blurRadius: 20,
                   offset: Offset(0, 10),
                 ),

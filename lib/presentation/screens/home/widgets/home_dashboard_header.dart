@@ -13,7 +13,7 @@ class HomeDashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     // Change to watch to respond to changes in the provider
     final userDataProvider = context.watch<UserInfoProvider>();
-    final Size screenSize = MediaQuery.of(context).size;
+    
 
     // Show loading indicator when data is loading
     if (userDataProvider.isLoading) {
@@ -35,7 +35,7 @@ class HomeDashboardHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(15.0),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Color.fromRGBO(128, 128, 128, 0.1),
               blurRadius: 10.0,
               spreadRadius: 1.0,
             )
@@ -58,7 +58,7 @@ class HomeDashboardHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(15.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Color.fromARGB((0.1 * 255).round(), (Colors.grey.shade100.value >> 16) & 0xFF, (Colors.grey.shade100.value >> 8) & 0xFF, Colors.grey.shade100.value & 0xFF),
             blurRadius: 10.0,
             spreadRadius: 1.0,
           )

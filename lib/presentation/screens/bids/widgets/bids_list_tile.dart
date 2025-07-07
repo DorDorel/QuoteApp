@@ -20,7 +20,6 @@ class BidTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isOpen = bid.openFlag ?? false;
     final Color primaryColor = isOpen ? Colors.green.shade700 : Colors.grey.shade600;
-    final Color backgroundColor = isOpen ? Colors.green.shade50 : Colors.grey.shade100;
 
     return GestureDetector(
       onTap: () {
@@ -40,7 +39,7 @@ class BidTile extends StatelessWidget {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.07),
+              color: Color.fromRGBO(0, 0, 0, 0.07),
               blurRadius: 12,
               offset: const Offset(0, 5),
             ),

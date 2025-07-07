@@ -79,7 +79,7 @@ class OpenTileMenu extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: Color.fromARGB((0.1 * 255).round(), (color.value >> 16) & 0xFF, (color.value >> 8) & 0xFF, color.value & 0xFF),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(

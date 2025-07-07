@@ -1,19 +1,19 @@
-import 'dart:developer';
-
-import 'package:QuoteApp/auth/auth_firestore_const.dart';
-import 'package:QuoteApp/auth/auth_repository.dart';
-import 'package:QuoteApp/auth/tenant_repository.dart';
-import 'package:QuoteApp/data/models/user.dart';
-import 'package:QuoteApp/data/providers/tenant_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show immutable, kDebugMode;
+import 'package:logger/logger.dart';
+
+import '../../auth/auth_firestore_const.dart';
+import '../../auth/auth_repository.dart';
+import '../../auth/tenant_repository.dart';
+import '../models/user.dart';
+import '../providers/tenant_provider.dart';
+import 'database_exception.dart';
 
 @immutable
 class UserDataService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final String tenant = TenantRepositoryImpl.currentTenantId;
-  final String uid = FirebaseAuth.instance.currentUser!.uid;
+  static final Logger _logger = Logger();
 
   // Cache the user data to prevent redundant Firestore queries
   static CustomUser? _cachedUserData;
@@ -27,43 +27,56 @@ class UserDataService {
   // cid is a companyId (String)
   // docRef is a reference to firestore document Object
   Future<DocumentReference<Object?>> findCompanyByCid(String cid) async {
-    DocumentReference<Object?> companyRef = companiesCollection.doc(cid);
-    return companyRef;
+    return companiesCollection.doc(cid);
   }
 
   Future<CustomUser?> getUserDataFromUserCollection() async {
     if (kDebugMode) {
-      log("🐛  *DEBUG LOG* : Database Query - getUserDataFromUserCollection from DatabaseService reading");
+      _logger.d(
+          "Database Query - getUserDataFromUserCollection from DatabaseService reading");
     }
 
     // Return cached data if available
     if (_cachedUserData != null) {
       if (kDebugMode) {
-        log("🐛  *DEBUG LOG* : Returning cached user data");
+        _logger.d("Returning cached user data");
       }
       return _cachedUserData;
     }
 
     try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) {
+        throw DatabaseException("User not logged in");
+      }
+
       // More efficient query that directly filters on the server side
-      final QuerySnapshot<Object?> userRef = await usersCollection
+      final userRef = await usersCollection
           .where(AuthFirestoreConstants.userIdString, isEqualTo: uid)
           .limit(1)
           .get();
 
       if (userRef.docs.isEmpty) {
-        log("No user document found with uid: $uid");
+        _logger.d("No user document found with uid: $uid");
         return null;
       }
 
       // Cache the data before returning
-      _cachedUserData = CustomUser.fromMap(userRef.docs.first.data() as Map<String, dynamic>);
+      _cachedUserData = CustomUser.fromMap(
+          userRef.docs.first.data() as Map<String, dynamic>);
       return _cachedUserData;
-    } catch (err) {
-      log("Error fetching user data: ${err.toString()}");
-      print(err.toString());
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Error fetching user data: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Error fetching user data",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
-    return null;
   }
 
   // Force refresh user data from Firestore
@@ -82,8 +95,17 @@ class UserDataService {
       await usersCollection.add(
         user.toMap(),
       );
-    } catch (exp) {
-      print(exp.toString());
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Error adding user to user collection: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Error adding user to user collection",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -101,9 +123,16 @@ class UserDataService {
           .set(
             user.toMap(),
           );
-    } catch (exp) {
-      print(
-        exp.toString(),
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Error adding user to company user list: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Error adding user to company user list",
+        error: e,
+        stackTrace: stackTrace,
       );
     }
   }
@@ -112,52 +141,74 @@ class UserDataService {
     String uid,
     String tenantId,
   ) async {
-    final DocumentReference tenantDoc = companiesCollection.doc(
+    final tenantDoc = companiesCollection.doc(
       tenantId,
     );
-    final CollectionReference<Map<String, dynamic>> userList =
-        tenantDoc.collection(
+    final userList = tenantDoc.collection(
       AuthFirestoreConstants.usersCollectionString,
     );
     try {
-      QuerySnapshot<Map<String, dynamic>> userUid = await userList
+      final userUid = await userList
           .where(
             AuthFirestoreConstants.userIdString,
             isEqualTo: uid,
           )
           .get();
+
+      if (userUid.docs.isEmpty) {
+        return null;
+      }
+
       return userUid.docs.first.data()[AuthFirestoreConstants.userIdString];
-    } catch (exp) {
-      print(exp.toString());
-      return null;
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Error finding user in company collection by uid: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Error finding user in company collection by uid",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   Future<bool> isAdmin() async {
-    String uid = AuthenticationRepositoryImpl.getCurrentUserUID;
-    String tenantId = TenantProvider.tenantId;
-
-    final DocumentReference tenantDoc = companiesCollection.doc(
-      tenantId,
-    );
-    final CollectionReference<Map<String, dynamic>> userList =
-        tenantDoc.collection(
-      AuthFirestoreConstants.usersCollectionString,
-    );
     try {
-      QuerySnapshot<Map<String, dynamic>> userUid = await userList
+      final uid = AuthenticationRepositoryImpl.getCurrentUserUID;
+      final tenantId = TenantProvider.tenantId;
+
+      final tenantDoc = companiesCollection.doc(
+        tenantId,
+      );
+      final userList = tenantDoc.collection(
+        AuthFirestoreConstants.usersCollectionString,
+      );
+
+      final userUid = await userList
           .where(
             AuthFirestoreConstants.userIdString,
             isEqualTo: uid,
           )
           .get();
-      bool isAdmin =
-          await userUid.docs.first.data()[AuthFirestoreConstants.isAdminString];
 
-      return isAdmin;
-    } catch (exp) {
-      print(exp.toString());
+      if (userUid.docs.isEmpty) {
+        return false;
+      }
+
+      return userUid.docs.first.data()[AuthFirestoreConstants.isAdminString] ?? false;
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Error checking if user is admin: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Error checking if user is admin",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
-    return false;
   }
 }

@@ -1,76 +1,95 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show immutable;
+import 'package:logger/logger.dart';
 
 import '../../auth/tenant_repository.dart';
 import 'constants/shared_firestore_constants.dart';
+import 'database_exception.dart';
 
 @immutable
 class SharedDb {
+  static final Logger _logger = Logger();
+
   static Future<int> getCurrentBidId() async {
-    int currentBidId = 0;
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
+    if (tenantRef == null) {
+      throw DatabaseException("Could not get tenant reference");
+    }
 
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
-
-    final CollectionReference<Map<String, dynamic>> sharedCollection =
-        tenantRef!.collection(
-      SharedFirestoreConstants.sharedCollectionString,
-    );
-
-    final DocumentReference<Map<String, dynamic>> bidConfigDoc =
-        sharedCollection.doc(
-      SharedFirestoreConstants.bidConfigDocString,
-    );
-
-    final bidConfigDocObj = await bidConfigDoc.get();
-
-    bidConfigDocObj.data()!.forEach(
-      (key, value) {
-        if (key == SharedFirestoreConstants.currentBidIdString) {
-          currentBidId = value;
-        }
-      },
-    );
-    return currentBidId;
-  }
-
-  Future<bool> updateBidId() async {
     try {
-      print("Starting bid ID update process...");
-      final DocumentReference<Object?>? tenantRef =
-          await TenantRepositoryImpl().getTenantReference();
-
-      if (tenantRef == null) {
-        print("ERROR: Could not get tenant reference for bid ID update");
-        return false;
-      }
-
-      final CollectionReference<Map<String, dynamic>> sharedCollection =
-          tenantRef.collection(
+      final sharedCollection = tenantRef.collection(
         SharedFirestoreConstants.sharedCollectionString,
       );
 
-      final DocumentReference<Map<String, dynamic>> bidConfigDoc =
-          sharedCollection.doc(
+      final bidConfigDoc = sharedCollection.doc(
         SharedFirestoreConstants.bidConfigDocString,
       );
 
-      int currentId = await getCurrentBidId();
-      print("Current bid ID is: $currentId");
-      int newId = currentId + 1;
+      final bidConfigDocObj = await bidConfigDoc.get();
 
-      Map<String, int> updated = {
+      if (!bidConfigDocObj.exists) {
+        throw DatabaseException("Bid config document not found");
+      }
+
+      final data = bidConfigDocObj.data();
+      if (data == null || !data.containsKey(SharedFirestoreConstants.currentBidIdString)) {
+        throw DatabaseException("'currentBidId' not found in bid config document");
+      }
+
+      return data[SharedFirestoreConstants.currentBidIdString];
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Error getting current bid ID",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Error getting current bid ID",
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> updateBidId() async {
+    try {
+      _logger.d("Starting bid ID update process...");
+      final tenantRef = await TenantRepositoryImpl().getTenantReference();
+
+      if (tenantRef == null) {
+        throw DatabaseException("Could not get tenant reference for bid ID update");
+      }
+
+      final sharedCollection = tenantRef.collection(
+        SharedFirestoreConstants.sharedCollectionString,
+      );
+
+      final bidConfigDoc = sharedCollection.doc(
+        SharedFirestoreConstants.bidConfigDocString,
+      );
+
+      final currentId = await getCurrentBidId();
+      _logger.d("Current bid ID is: $currentId");
+      final newId = currentId + 1;
+
+      final updated = {
         SharedFirestoreConstants.currentBidIdString: newId,
       };
 
-      print("Updating bid ID to: $newId");
+      _logger.d("Updating bid ID to: $newId");
       await bidConfigDoc.update(updated);
-      print("Bid ID successfully updated to: $newId");
-
-      return true;
-    } catch (exp) {
-      print("ERROR updating bid ID: ${exp.toString()}");
-      return false;
+      _logger.d("Bid ID successfully updated to: $newId");
+    } catch (e, stackTrace) {
+      _logger.e(
+        "ERROR updating bid ID: ${e.toString()}",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "ERROR updating bid ID",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 }

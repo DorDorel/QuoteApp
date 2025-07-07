@@ -46,7 +46,7 @@ class BidInfo extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black26,
+                    color: Color.fromRGBO(0, 0, 0, 0.26),
                     blurRadius: 6,
                     offset: Offset(0, 2),
                   ),
@@ -64,7 +64,7 @@ class BidInfo extends StatelessWidget {
                           Container(
                             padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.white24,
+                              color: Color.fromRGBO(255, 255, 255, 0.24),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
@@ -137,7 +137,7 @@ class BidInfo extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Color.fromRGBO(0, 0, 0, 0.05),
                           blurRadius: 10,
                           spreadRadius: 1,
                           offset: Offset(0, 2),
@@ -204,7 +204,7 @@ class BidInfo extends StatelessWidget {
         Icon(
           icon,
           size: 16,
-          color: Colors.white70,
+          color: Color.fromRGBO(255, 255, 255, 0.7),
         ),
         SizedBox(width: 8),
         Expanded(
@@ -246,7 +246,7 @@ class BidInfo extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.green.withOpacity(0.2),
+              color: Color.fromRGBO(255, 255, 255, 0.2),
               blurRadius: 8,
               offset: Offset(0, 2),
             ),
@@ -298,7 +298,7 @@ class BidInfo extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.withOpacity(0.2),
+              color: Color.fromRGBO(255, 255, 255, 0.2),
               blurRadius: 8,
               offset: Offset(0, 2),
             ),

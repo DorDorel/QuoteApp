@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 
 import '../data/models/bid.dart';
 import '../data/networking/bids_db.dart';
@@ -12,6 +13,8 @@ class CreateBid {
   final String phoneNumber;
   final String creator;
 
+  static final Logger _logger = Logger();
+
   CreateBid({
     required this.currentBid,
     required this.phoneNumber,
@@ -20,28 +23,26 @@ class CreateBid {
 
   Future<bool> startNewBidFlow() async {
     try {
-      print("==== STARTING NEW BID CREATION FLOW ====");
-      print("Bid ID: ${currentBid.bidId}");
-      print("Client: ${currentBid.clientName}");
-      print("Products: ${currentBid.selectedProducts.length}");
+      _logger.d("==== STARTING NEW BID CREATION FLOW ====");
+      _logger.d("Bid ID: ${currentBid.bidId}");
+      _logger.d("Client: ${currentBid.clientName}");
+      _logger.d("Products: ${currentBid.selectedProducts.length}");
 
       /*
       setBidInDB getting the current bid doc id.
       */
-      print("Attempting to write bid to database...");
-      String setBidInDB = await BidsDb.addBidToBidCollection(currentBid);
-      print("Result of database write: $setBidInDB");
+      _logger.d("Attempting to write bid to database...");
+      String? setBidInDB = await BidsDb.addBidToBidCollection(currentBid);
+      _logger.d("Result of database write: $setBidInDB");
 
-      if (setBidInDB != 'null') {
-        print("Bid document created successfully with ID: $setBidInDB");
-        print("Updating bid counter...");
-        bool counterUpdated = await SharedDb().updateBidId();
-        if (!counterUpdated) {
-          print("WARNING: Failed to update bid counter!");
-        }
+      if (setBidInDB != null) {
+        _logger.d("Bid document created successfully with ID: $setBidInDB");
+        _logger.d("Updating bid counter...");
+        await SharedDb().updateBidId();
+        _logger.d("Bid counter updated");
 
         // cloud function to send email and sms with link
-        print("Creating BidFlowRunner for notifications...");
+        _logger.d("Creating BidFlowRunner for notifications...");
         final BidFlowRunner newRunner = BidFlowRunner(
           tenantId: TenantProvider.tenantId,
           tenantName: TenantProvider.tenantName,
@@ -51,17 +52,18 @@ class CreateBid {
           creator: creator,
         );
 
-        print("Running notification flow...");
+        _logger.d("Running notification flow...");
         await newRunner.runner();
-        print("Notification flow completed");
-        print("==== BID CREATION COMPLETED SUCCESSFULLY ====");
+        _logger.d("Notification flow completed");
+        _logger.d("==== BID CREATION COMPLETED SUCCESSFULLY ====");
         return true;
       } else {
-        print("ERROR: Failed to create bid document in database");
+        _logger.e("ERROR: Failed to create bid document in database");
         return false;
       }
-    } catch (exp) {
-      print("CRITICAL ERROR in startNewBidFlow: ${exp.toString()}");
+    } catch (exp, stackTrace) {
+      _logger.e("CRITICAL ERROR in startNewBidFlow: ${exp.toString()}",
+          error: exp, stackTrace: stackTrace);
       return false;
     }
   }

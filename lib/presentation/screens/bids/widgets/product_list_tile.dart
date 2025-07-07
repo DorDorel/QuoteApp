@@ -51,8 +51,8 @@ class _ProductListTileState extends State<ProductListTile> {
           boxShadow: [
             BoxShadow(
               color: isSelected
-                  ? Colors.black.withOpacity(0.15)
-                  : Colors.black.withOpacity(0.05),
+                  ? Color.fromRGBO(0, 0, 0, 0.15)
+                  : Color.fromRGBO(0, 0, 0, 0.05),
               spreadRadius: 1,
               blurRadius: 8,
               offset: Offset(0, 3),
@@ -78,8 +78,8 @@ class _ProductListTileState extends State<ProductListTile> {
                   ),
                 );
               },
-              splashColor: Colors.grey.withOpacity(0.1),
-              highlightColor: Colors.grey.withOpacity(0.05),
+              splashColor: Color.fromRGBO(128, 128, 128, 0.1),
+              highlightColor: Color.fromRGBO(128, 128, 128, 0.05),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -94,7 +94,7 @@ class _ProductListTileState extends State<ProductListTile> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Color.fromRGBO(0, 0, 0, 0.05),
                             blurRadius: 5,
                             spreadRadius: 1,
                           ),
@@ -220,7 +220,7 @@ class _ProductListTileState extends State<ProductListTile> {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: isSelected ? Colors.red.shade50 : Colors.grey.shade100,
+        color: Color.fromRGBO(255, 0, 0, 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Material(
@@ -361,7 +361,7 @@ class _ProductDetailsSheetState extends State<ProductDetailsSheet> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Color.fromRGBO(0, 0, 0, 0.2),
             blurRadius: 10,
             offset: Offset(0, 4),
           ),
@@ -383,7 +383,7 @@ class _ProductDetailsSheetState extends State<ProductDetailsSheet> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Color.fromRGBO(0, 0, 0, 0.1),
                       blurRadius: 10,
                       offset: Offset(0, 4),
                     ),
@@ -427,7 +427,7 @@ class _ProductDetailsSheetState extends State<ProductDetailsSheet> {
                       "Base Price: ${formatter.format(widget.widget.price)} ₪",
                       style: GoogleFonts.poppins(
                         fontSize: 16,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Color.fromRGBO(255, 255, 255, 0.9),
                       ),
                     ),
                   ],
@@ -443,7 +443,7 @@ class _ProductDetailsSheetState extends State<ProductDetailsSheet> {
             width: 60,
             height: 5,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
+              color: Color.fromRGBO(255, 255, 255, 0.3),
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -487,7 +487,7 @@ class _ProductDetailsSheetState extends State<ProductDetailsSheet> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Color.fromRGBO(0, 0, 0, 0.05),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -630,7 +630,7 @@ class _ProductDetailsSheetState extends State<ProductDetailsSheet> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Color.fromRGBO(0, 0, 0, 0.05),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -787,7 +787,7 @@ class _ProductDetailsSheetState extends State<ProductDetailsSheet> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Color.fromRGBO(0, 0, 0, 0.05),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -843,7 +843,7 @@ class _ProductDetailsSheetState extends State<ProductDetailsSheet> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Color.fromRGBO(0, 0, 0, 0.05),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -888,7 +888,7 @@ class _ProductDetailsSheetState extends State<ProductDetailsSheet> {
       width: 30,
       height: 30,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: Color.fromRGBO(224, 224, 224, 1),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Material(
@@ -916,7 +916,7 @@ class _ProductDetailsSheetState extends State<ProductDetailsSheet> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Color.fromRGBO(0, 0, 0, 0.05),
             offset: Offset(0, -3),
             blurRadius: 10,
           ),

@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -64,7 +63,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
   Future<void> _pickAndUploadImage() async {
     try {
       String? imageUrl = await StorageService().uploadProductImage(_editedProduct.productId);
-      if (imageUrl != null) {
+      if (imageUrl != null) { // ignore: unnecessary_null_comparison
         setState(() {
           _imageUrl = imageUrl;
           _editedProduct = _editedProduct.copyWith(imageUrl: imageUrl);
@@ -167,7 +166,7 @@ class _AddNewProductScreenState extends State<AddNewProductScreen> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey.shade300, width: 1),
         ),
-        child: _imageUrl != null && _imageUrl!.isNotEmpty
+        child: _imageUrl?.isNotEmpty ?? false
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(_imageUrl!, fit: BoxFit.cover),

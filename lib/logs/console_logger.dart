@@ -83,7 +83,7 @@ class Logger {
 
   // Track user actions and screens
   Future<void> logScreenView(String screenName) async {
-    await _analytics.setCurrentScreen(screenName: screenName);
+    await _analytics.logScreenView(screenName: screenName);
     info('Screen view: $screenName', tag: 'Navigation');
   }
 

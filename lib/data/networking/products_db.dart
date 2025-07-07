@@ -1,36 +1,34 @@
-import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show immutable, kDebugMode;
-import 'package:QuoteApp/logs/console_logger.dart';
+import 'package:logger/logger.dart';
 
 import '../../auth/tenant_repository.dart';
 import '../models/product.dart';
 import 'constants/products_firestore_constants.dart';
+import 'database_exception.dart';
 
-/*
-    tenantRef: Reference to specific company(tenant) collection of current user
- */
 @immutable
 class ProductsDb {
-  static final logger = Logger();
+  static final Logger _logger = Logger();
 
   static Future<String> addNewProduct(Product product) async {
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
+    if (tenantRef == null) {
+      throw DatabaseException("Could not get tenant reference");
+    }
+
     try {
       if (kDebugMode) {
-        log("*DEBUG LOG* : Database Query - addNewProduct from ProductsDb reading");
+        _logger.d("Database Query - addNewProduct from ProductsDb reading");
       }
 
-      final CollectionReference<Map<String, dynamic>> productList =
-          tenantRef!.collection(
+      final productList = tenantRef.collection(
         ProductFirestoreConstants.productsCollectionString,
       );
       final newProductDbObject = await productList.add(
         product.toMap(),
       );
-      newProductDbObject.set(
+      await newProductDbObject.set(
         {
           ProductFirestoreConstants.productDocumentIdString:
               newProductDbObject.id,
@@ -38,49 +36,67 @@ class ProductsDb {
         SetOptions(merge: true),
       );
       return newProductDbObject.id;
-    } catch (exp) {
-      logger.error("Failed to add new product",
-          tag: "ProductsDB", exception: exp);
-      return exp.toString();
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Failed to add new product",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Failed to add new product",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
-  static Future<List<Product>?> getAllProducts() async {
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
-    List<Product> productList = [];
+  static Future<List<Product>> getAllProducts() async {
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
+    if (tenantRef == null) {
+      throw DatabaseException("Could not get tenant reference");
+    }
+
     try {
       if (kDebugMode) {
-        log("🐛 *DEBUG LOG* : Database Query - getAllProducts from ProductsDb reading");
+        _logger.d("Database Query - getAllProducts from ProductsDb reading");
       }
 
-      QuerySnapshot<Map<String, dynamic>> productsCollection = await tenantRef!
+      final productsCollection = await tenantRef
           .collection(
             ProductFirestoreConstants.productsCollectionString,
           )
           .get();
-      for (final product in productsCollection.docs) {
-        productList.add(
-          Product.fromMap(product.data()),
-        );
-      }
-    } catch (exp) {
-      logger.error("Failed to get all products",
-          tag: "ProductsDB", exception: exp);
-      return null;
+
+      return productsCollection.docs
+          .map((doc) => Product.fromMap(doc.data()))
+          .toList();
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Failed to get all products",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Failed to get all products",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
-    return productList;
   }
 
   static Future<Product?> findProductByProductId(String productId) async {
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
+    if (tenantRef == null) {
+      throw DatabaseException("Could not get tenant reference");
+    }
+
     try {
       if (kDebugMode) {
-        log("🐛 *DEBUG LOG* : Database Query - findProductByProductId from ProductsDb reading");
+        _logger.d(
+            "Database Query - findProductByProductId from ProductsDb reading");
       }
 
-      QuerySnapshot<Map<String, dynamic>> currentProduct = await tenantRef!
+      final currentProduct = await tenantRef
           .collection(
             ProductFirestoreConstants.productsCollectionString,
           )
@@ -89,24 +105,39 @@ class ProductsDb {
             isEqualTo: productId,
           )
           .get();
+
+      if (currentProduct.docs.isEmpty) {
+        return null;
+      }
+
       return Product.fromMap(currentProduct.docs.first.data());
-    } catch (exp) {
-      logger.error("Failed to find product by ID: $productId",
-          tag: "ProductsDB", exception: exp);
-      return null;
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Failed to find product by ID: $productId",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Failed to find product by ID: $productId",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
-  static Future<QuerySnapshot<Map<String, dynamic>>?> _findFirestoreDocumentId(
-      String productId) async {
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
+  static Future<String> _findFirestoreDocumentId(String productId) async {
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
+    if (tenantRef == null) {
+      throw DatabaseException("Could not get tenant reference");
+    }
+
     try {
       if (kDebugMode) {
-        log("*🐛 DEBUG LOG* : Database Query - findFirestoreDocumentId from ProductsDb reading");
+        _logger.d(
+            "Database Query - findFirestoreDocumentId from ProductsDb reading");
       }
 
-      QuerySnapshot<Map<String, dynamic>> currentProduct = await tenantRef!
+      final currentProduct = await tenantRef
           .collection(
             ProductFirestoreConstants.productsCollectionString,
           )
@@ -115,72 +146,89 @@ class ProductsDb {
             isEqualTo: productId,
           )
           .get();
-      return currentProduct;
-    } catch (exp) {
-      logger.error(
-          "Failed to find Firestore document ID for product: $productId",
-          tag: "ProductsDB",
-          exception: exp);
-      return null;
+
+      if (currentProduct.docs.isEmpty) {
+        throw DatabaseException(
+            "Product with ID '$productId' not found in Firestore");
+      }
+
+      return currentProduct.docs.first
+          .data()[ProductFirestoreConstants.productDocumentIdString];
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Failed to find Firestore document ID for product: $productId",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Failed to find Firestore document ID for product: $productId",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   static Future<void> removeProduct(String productId) async {
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
+    if (tenantRef == null) {
+      throw DatabaseException("Could not get tenant reference");
+    }
+
     try {
       if (kDebugMode) {
-        log("*🐛 DEBUG LOG* : Database Query - removeProduct from ProductsDb reading");
+        _logger.d("Database Query - removeProduct from ProductsDb reading");
       }
 
-      QuerySnapshot<Map<String, dynamic>>? currentProduct =
-          await _findFirestoreDocumentId(
-        productId,
+      final documentId = await _findFirestoreDocumentId(productId);
+
+      await tenantRef
+          .collection(
+            ProductFirestoreConstants.productsCollectionString,
+          )
+          .doc(documentId)
+          .delete();
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Failed to remove product: $productId",
+        error: e,
+        stackTrace: stackTrace,
       );
-      final String documentId = currentProduct!.docs.first
-          .data()[ProductFirestoreConstants.productDocumentIdString];
-
-      try {
-        await tenantRef!
-            .collection(
-              ProductFirestoreConstants.productsCollectionString,
-            )
-            .doc(
-              documentId,
-            )
-            .delete();
-      } catch (exp) {
-        logger.error("Failed to delete product document",
-            tag: "ProductsDB", exception: exp);
-      }
-    } catch (exp) {
-      logger.error("Failed to remove product: $productId",
-          tag: "ProductsDB", exception: exp);
+      throw DatabaseException(
+        "Failed to remove product: $productId",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   static Future<void> editProduct(String productId, Product product) async {
-    final DocumentReference<Object?>? tenantRef =
-        await TenantRepositoryImpl().getTenantReference();
-    try {
-      QuerySnapshot<Map<String, dynamic>>? currentProduct =
-          await _findFirestoreDocumentId(productId);
-      final String documentId = currentProduct!.docs.first
-          .data()[ProductFirestoreConstants.productDocumentIdString];
+    final tenantRef = await TenantRepositoryImpl().getTenantReference();
+    if (tenantRef == null) {
+      throw DatabaseException("Could not get tenant reference");
+    }
 
-      await tenantRef!
+    try {
+      final documentId = await _findFirestoreDocumentId(productId);
+
+      await tenantRef
           .collection(
             ProductFirestoreConstants.productsCollectionString,
           )
-          .doc(
-            documentId,
-          )
+          .doc(documentId)
           .update(
             product.toMap(),
           );
-    } catch (exp) {
-      logger.error("Failed to edit product: $productId",
-          tag: "ProductsDB", exception: exp);
+    } catch (e, stackTrace) {
+      _logger.e(
+        "Failed to edit product: $productId",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw DatabaseException(
+        "Failed to edit product: $productId",
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 }

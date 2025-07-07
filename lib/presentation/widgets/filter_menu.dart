@@ -35,7 +35,7 @@ class FilterMenu extends StatelessWidget {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Color.fromRGBO(0, 0, 0, 0.05),
               offset: const Offset(0, 2),
               blurRadius: 6,
               spreadRadius: 0,
@@ -44,7 +44,7 @@ class FilterMenu extends StatelessWidget {
         ),
         child: TabBar(
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.black.withOpacity(0.7),
+          unselectedLabelColor: Color.fromRGBO(0, 0, 0, 0.7),
           labelStyle: activeTabStyle,
           unselectedLabelStyle: inactiveTabStyle,
           indicatorWeight: 0, // Remove default indicator
@@ -55,7 +55,7 @@ class FilterMenu extends StatelessWidget {
             color: theme.primaryColor,
             boxShadow: [
               BoxShadow(
-                color: theme.primaryColor.withOpacity(0.4),
+                color: theme.primaryColor.withAlpha((255 * 0.4).round()),
                 offset: const Offset(0, 2),
                 blurRadius: 6,
                 spreadRadius: -1,
@@ -103,7 +103,7 @@ class FilterMenu extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 5, vertical: 1), // Smaller padding
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Color.fromRGBO(255, 255, 255, 0.3),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(

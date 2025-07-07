@@ -51,7 +51,7 @@ class _RootScreenState extends State<RootScreen> {
       bottomNavigationBar: AnimatedBottomNavigationBar(
         // leftCornerRadius: 30,
         // rightCornerRadius: 30,
-        inactiveColor: Colors.black.withOpacity(.5),
+        inactiveColor: Color.fromRGBO(0, 0, 0, 0.5),
         gapLocation: GapLocation.center,
         activeIndex: bottomNavIndex,
         activeColor: Colors.black,
